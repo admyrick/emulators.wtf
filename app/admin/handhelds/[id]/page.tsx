@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase"
+import { supabaseAdmin as supabase } from "@/lib/supabase-admin"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,7 +19,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { ArrowLeft, Save, Trash2, ExternalLink, Calendar } from 'lucide-react'
 import Link from "next/link"
 import Image from "next/image"
 import { redirect } from "next/navigation"
@@ -61,7 +60,12 @@ async function getHandheldWithRelationships(id: string) {
   ] = await Promise.all([
     supabase.from("handhelds").select("*").eq("id", id).single(),
     // Order by updated_at to avoid relying on a non-existent display_order column
-    supabase.from("links").select("*").eq("entity_type", "handheld").eq("entity_id", id).order("updated_at", { ascending: false }),
+    supabase
+      .from("links")
+      .select("*")
+      .eq("entity_type", "handheld")
+      .eq("entity_id", id)
+      .order("updated_at", { ascending: false }),
     supabase
       .from("handheld_custom_firmware")
       .select(`
@@ -128,9 +132,10 @@ export async function updateHandheld(formData: FormData) {
       description: (formData.get("description") as string) || null,
       image_url: (formData.get("image_url") as string) || null,
       price_range: (formData.get("price_range") as string) || null,
-      release_year: formData.get("release_year") && formData.get("release_year") !== "0"
-        ? Number(formData.get("release_year"))
-        : null,
+      release_year:
+        formData.get("release_year") && formData.get("release_year") !== "0"
+          ? Number(formData.get("release_year"))
+          : null,
       screen_size: (formData.get("screen_size") as string) || null,
       cpu: (formData.get("cpu") as string) || null,
       ram: (formData.get("ram") as string) || null,
@@ -252,7 +257,7 @@ export default async function AdminHandheldDetailPage({ params }: { params: { id
           <Button asChild className="bg-purple-600 hover:bg-purple-700 text-white">
             <a href={currentPath}>Reload Page</a>
           </Button>
-          <Button asChild variant="outline" className="border-slate-600 text-white hover:bg-slate-700">
+          <Button asChild variant="outline" className="border-slate-600 text-white hover:bg-slate-700 bg-transparent">
             <Link href="/admin/handhelds">Back to Handhelds</Link>
           </Button>
         </div>
@@ -274,8 +279,7 @@ export default async function AdminHandheldDetailPage({ params }: { params: { id
             size="sm"
             className="mb-4 bg-transparent border-slate-600 text-white hover:bg-slate-700"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Handhelds
+            ← Back to Handhelds
           </Button>
         </Link>
         <div className="flex items-center justify-between">
@@ -291,8 +295,7 @@ export default async function AdminHandheldDetailPage({ params }: { params: { id
               className="border-slate-600 text-white hover:bg-slate-700 bg-transparent"
             >
               <Link href={`/handheld/${handheld.slug}`} target="_blank">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                View Public Page
+                🔗 View Public Page
               </Link>
             </Button>
           </div>
@@ -311,28 +314,55 @@ export default async function AdminHandheldDetailPage({ params }: { params: { id
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name" className="text-white">Name *</Label>
-                    <Input id="name" name="name" defaultValue={handheld.name} required className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                    <Label htmlFor="name" className="text-white">
+                      Name *
+                    </Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      defaultValue={handheld.name}
+                      required
+                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                    />
                   </div>
                   <div>
-                    <Label htmlFor="slug" className="text-white">Slug *</Label>
-                    <Input id="slug" name="slug" defaultValue={handheld.slug} required className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                    <Label htmlFor="slug" className="text-white">
+                      Slug *
+                    </Label>
+                    <Input
+                      id="slug"
+                      name="slug"
+                      defaultValue={handheld.slug}
+                      required
+                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                    />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="manufacturer" className="text-white">Manufacturer</Label>
-                    <Input id="manufacturer" name="manufacturer" defaultValue={handheld.manufacturer || ""} className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                    <Label htmlFor="manufacturer" className="text-white">
+                      Manufacturer
+                    </Label>
+                    <Input
+                      id="manufacturer"
+                      name="manufacturer"
+                      defaultValue={handheld.manufacturer || ""}
+                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                    />
                   </div>
                   <div>
-                    <Label htmlFor="release_year" className="text-white">Release Year</Label>
+                    <Label htmlFor="release_year" className="text-white">
+                      Release Year
+                    </Label>
                     <Select name="release_year" defaultValue={handheld.release_year?.toString() || "0"}>
                       <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                         <SelectValue placeholder="Select release year" />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-700 border-slate-600">
-                        <SelectItem value="0" className="text-white">Not specified</SelectItem>
+                        <SelectItem value="0" className="text-white">
+                          Not specified
+                        </SelectItem>
                         {yearOptions.map((y) => (
                           <SelectItem key={y} value={String(y)} className="text-white">
                             {y}
@@ -344,18 +374,42 @@ export default async function AdminHandheldDetailPage({ params }: { params: { id
                 </div>
 
                 <div>
-                  <Label htmlFor="description" className="text-white">Description</Label>
-                  <Textarea id="description" name="description" defaultValue={handheld.description || ""} rows={3} className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                  <Label htmlFor="description" className="text-white">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    defaultValue={handheld.description || ""}
+                    rows={3}
+                    className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="image_url" className="text-white">Image URL</Label>
-                    <Input id="image_url" name="image_url" type="url" defaultValue={handheld.image_url || ""} className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                    <Label htmlFor="image_url" className="text-white">
+                      Image URL
+                    </Label>
+                    <Input
+                      id="image_url"
+                      name="image_url"
+                      type="url"
+                      defaultValue={handheld.image_url || ""}
+                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                    />
                   </div>
                   <div>
-                    <Label htmlFor="price_range" className="text-white">Price Range</Label>
-                    <Input id="price_range" name="price_range" defaultValue={handheld.price_range || ""} placeholder="e.g., $399-$699" className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                    <Label htmlFor="price_range" className="text-white">
+                      Price Range
+                    </Label>
+                    <Input
+                      id="price_range"
+                      name="price_range"
+                      defaultValue={handheld.price_range || ""}
+                      placeholder="e.g., $399-$699"
+                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                    />
                   </div>
                 </div>
 
@@ -365,61 +419,120 @@ export default async function AdminHandheldDetailPage({ params }: { params: { id
                   <h3 className="text-lg font-semibold text-white">Technical Specifications</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="screen_size" className="text-white">Screen Size</Label>
-                      <Input id="screen_size" name="screen_size" defaultValue={handheld.screen_size || ""} placeholder="e.g., 7-inch 1280x800" className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                      <Label htmlFor="screen_size" className="text-white">
+                        Screen Size
+                      </Label>
+                      <Input
+                        id="screen_size"
+                        name="screen_size"
+                        defaultValue={handheld.screen_size || ""}
+                        placeholder="e.g., 7-inch 1280x800"
+                        className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                      />
                     </div>
                     <div>
-                      <Label htmlFor="cpu" className="text-white">CPU</Label>
-                      <Input id="cpu" name="cpu" defaultValue={handheld.cpu || ""} placeholder="e.g., AMD Ryzen Z1 Extreme" className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                      <Label htmlFor="cpu" className="text-white">
+                        CPU
+                      </Label>
+                      <Input
+                        id="cpu"
+                        name="cpu"
+                        defaultValue={handheld.cpu || ""}
+                        placeholder="e.g., AMD Ryzen Z1 Extreme"
+                        className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                      />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="ram" className="text-white">RAM</Label>
-                      <Input id="ram" name="ram" defaultValue={handheld.ram || ""} placeholder="e.g., 16GB LPDDR5" className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                      <Label htmlFor="ram" className="text-white">
+                        RAM
+                      </Label>
+                      <Input
+                        id="ram"
+                        name="ram"
+                        defaultValue={handheld.ram || ""}
+                        placeholder="e.g., 16GB LPDDR5"
+                        className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                      />
                     </div>
                     <div>
-                      <Label htmlFor="internal_storage" className="text-white">Internal Storage</Label>
-                      <Input id="internal_storage" name="internal_storage" defaultValue={handheld.internal_storage || ""} placeholder="e.g., 512GB NVMe SSD" className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                      <Label htmlFor="internal_storage" className="text-white">
+                        Internal Storage
+                      </Label>
+                      <Input
+                        id="internal_storage"
+                        name="internal_storage"
+                        defaultValue={handheld.internal_storage || ""}
+                        placeholder="e.g., 512GB NVMe SSD"
+                        className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                      />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <Label htmlFor="battery_life" className="text-white">Battery Life</Label>
-                      <Input id="battery_life" name="battery_life" defaultValue={handheld.battery_life || ""} placeholder="e.g., 2-8 hours" className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                      <Label htmlFor="battery_life" className="text-white">
+                        Battery Life
+                      </Label>
+                      <Input
+                        id="battery_life"
+                        name="battery_life"
+                        defaultValue={handheld.battery_life || ""}
+                        placeholder="e.g., 2-8 hours"
+                        className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                      />
                     </div>
                     <div>
-                      <Label htmlFor="weight" className="text-white">Weight</Label>
-                      <Input id="weight" name="weight" defaultValue={handheld.weight || ""} placeholder="e.g., 608g" className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                      <Label htmlFor="weight" className="text-white">
+                        Weight
+                      </Label>
+                      <Input
+                        id="weight"
+                        name="weight"
+                        defaultValue={handheld.weight || ""}
+                        placeholder="e.g., 608g"
+                        className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                      />
                     </div>
                     <div>
-                      <Label htmlFor="dimensions" className="text-white">Dimensions</Label>
-                      <Input id="dimensions" name="dimensions" defaultValue={handheld.dimensions || ""} placeholder="e.g., 298×111×21mm" className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                      <Label htmlFor="dimensions" className="text-white">
+                        Dimensions
+                      </Label>
+                      <Input
+                        id="dimensions"
+                        name="dimensions"
+                        defaultValue={handheld.dimensions || ""}
+                        placeholder="e.g., 298×111×21mm"
+                        className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="key_features" className="text-white">Key Features (comma-separated)</Label>
-                  <Textarea id="key_features" name="key_features" defaultValue={handheld.key_features?.join(", ") || ""} rows={2} placeholder="e.g., Steam OS, Hall Effect Joysticks, VRR Display" className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+                  <Label htmlFor="key_features" className="text-white">
+                    Key Features (comma-separated)
+                  </Label>
+                  <Textarea
+                    id="key_features"
+                    name="key_features"
+                    defaultValue={handheld.key_features?.join(", ") || ""}
+                    rows={2}
+                    placeholder="e.g., Steam OS, Hall Effect Joysticks, VRR Display"
+                    className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                  />
                 </div>
 
                 <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Changes
+                  💾 Save Changes
                 </Button>
               </form>
             </CardContent>
           </Card>
 
-          <LinksManager
-            entityType="handheld"
-            entityId={handheld.id}
-            links={data.links}
-            onLinksChange={() => {}}
-          />
+          <LinksManager entityType="handheld" entityId={handheld.id} links={data.links} onLinksChange={() => {}} />
         </div>
 
         <div className="space-y-6">
@@ -432,7 +545,7 @@ export default async function AdminHandheldDetailPage({ params }: { params: { id
                 {handheld.image_url && (
                   <div className="aspect-video relative bg-slate-700 rounded-lg overflow-hidden">
                     <Image
-                      src={handheld.image_url || "/placeholder.svg?height=360&width=640&query=handheld-image"} 
+                      src={handheld.image_url || "/placeholder.svg?height=360&width=640&query=handheld-image"}
                       alt={handheld.name}
                       fill
                       className="object-cover"
@@ -444,9 +557,11 @@ export default async function AdminHandheldDetailPage({ params }: { params: { id
                   <h3 className="font-semibold text-lg text-white">{handheld.name}</h3>
                   {handheld.manufacturer && <p className="text-sm text-slate-400">{handheld.manufacturer}</p>}
                   {handheld.release_year && (
-                    <Badge variant="secondary" className="mt-2 flex items-center gap-1 w-fit bg-slate-700 text-slate-200">
-                      <Calendar className="w-3 h-3" />
-                      {handheld.release_year}
+                    <Badge
+                      variant="secondary"
+                      className="mt-2 flex items-center gap-1 w-fit bg-slate-700 text-slate-200"
+                    >
+                      📅 {handheld.release_year}
                     </Badge>
                   )}
                 </div>
@@ -462,8 +577,7 @@ export default async function AdminHandheldDetailPage({ params }: { params: { id
                 ) : null}
                 <Button asChild size="sm" className="w-full bg-purple-600 hover:bg-purple-700 text-white">
                   <Link href={`/handheld/${handheld.slug}`} target="_blank">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    View Public Page
+                    🔗 View Public Page
                   </Link>
                 </Button>
               </div>
@@ -477,23 +591,33 @@ export default async function AdminHandheldDetailPage({ params }: { params: { id
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-400">Custom Firmware:</span>
-                <Badge variant="outline" className="border-slate-600 text-slate-300">{data.customFirmware.length}</Badge>
+                <Badge variant="outline" className="border-slate-600 text-slate-300">
+                  {data.customFirmware.length}
+                </Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Retailers:</span>
-                <Badge variant="outline" className="border-slate-600 text-slate-300">{data.retailers.length}</Badge>
+                <Badge variant="outline" className="border-slate-600 text-slate-300">
+                  {data.retailers.length}
+                </Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Categories:</span>
-                <Badge variant="outline" className="border-slate-600 text-slate-300">{data.categories.length}</Badge>
+                <Badge variant="outline" className="border-slate-600 text-slate-300">
+                  {data.categories.length}
+                </Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Compatible Tools:</span>
-                <Badge variant="outline" className="border-slate-600 text-slate-300">{data.compatibleTools.length}</Badge>
+                <Badge variant="outline" className="border-slate-600 text-slate-300">
+                  {data.compatibleTools.length}
+                </Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Links:</span>
-                <Badge variant="outline" className="border-slate-600 text-slate-300">{data.links.length}</Badge>
+                <Badge variant="outline" className="border-slate-600 text-slate-300">
+                  {data.links.length}
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -506,8 +630,7 @@ export default async function AdminHandheldDetailPage({ params }: { params: { id
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" className="w-full">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Handheld
+                    🗑️ Delete Handheld
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent className="bg-slate-800 border-slate-700">
@@ -518,11 +641,15 @@ export default async function AdminHandheldDetailPage({ params }: { params: { id
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel className="border-slate-600 text-white hover:bg-slate-700">Cancel</AlertDialogCancel>
+                    <AlertDialogCancel className="border-slate-600 text-white hover:bg-slate-700">
+                      Cancel
+                    </AlertDialogCancel>
                     <AlertDialogAction asChild>
                       <form action={deleteHandheld}>
                         <input type="hidden" name="id" value={handheld.id} />
-                        <Button type="submit" variant="destructive">Delete Handheld</Button>
+                        <Button type="submit" variant="destructive">
+                          Delete Handheld
+                        </Button>
                       </form>
                     </AlertDialogAction>
                   </AlertDialogFooter>

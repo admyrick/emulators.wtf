@@ -3,21 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import {
-  Download,
-  ExternalLink,
-  Github,
-  FileText,
-  Users,
-  Calendar,
-  Monitor,
-  Cpu,
-  HardDrive,
-  Battery,
-  Weight,
-  Ruler,
-  Zap,
-} from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { notFound } from "next/navigation"
@@ -81,14 +66,18 @@ interface CompatibleCustomFirmware {
 
 async function getHandheld(slug: string): Promise<Handheld | null> {
   try {
-    const { data, error } = await supabase.from("handhelds").select("*").eq("slug", slug).single()
+    const { data, error } = await supabase.from("handhelds").select("*").eq("slug", slug)
 
     if (error) {
       console.error("Error fetching handheld:", error)
       return null
     }
 
-    return data
+    if (!data || data.length === 0) {
+      return null
+    }
+
+    return data[0]
   } catch (error) {
     console.error("Error in getHandheld:", error)
     return null
@@ -176,18 +165,21 @@ async function getCompatibleCustomFirmware(handheldId: string): Promise<Compatib
 }
 
 const linkTypeIcons = {
-  download: Download,
-  official: ExternalLink,
-  documentation: FileText,
-  forum: Users,
-  wiki: FileText,
-  source: Github,
-  general: ExternalLink,
+  download: () => "📥",
+  official: () => "🔗",
+  documentation: () => "📄",
+  forum: () => "👥",
+  wiki: () => "📄",
+  source: () => "💻",
+  general: () => "🔗",
 }
 
-export default async function HandheldDetailPage({ params }: { params: { slug: string } }) {
-  const { slug } = await params
-  const handheld = await getHandheld(slug)
+export default async function HandheldDevicePage({
+  params,
+}: {
+  params: { slug: string }
+}) {
+  const handheld = await getHandheld(params.slug)
 
   if (!handheld) {
     notFound()
@@ -227,18 +219,18 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
             <div className="lg:w-2/3 space-y-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-  <h1 className="text-4xl font-bold text-white">{handheld.name}</h1>
-  <AddToCompareButton handheldId={handheld.id} label />
-</div>
+                  <h1 className="text-4xl font-bold text-white">{handheld.name}</h1>
+                  <AddToCompareButton handheldId={handheld.id} label />
+                </div>
                 {handheld.manufacturer && (
                   <p className="text-xl text-slate-300 flex items-center gap-2">
-                    <Users className="w-5 h-5" />
+                    <span>👥</span>
                     by {handheld.manufacturer}
                   </p>
                 )}
                 {handheld.release_year && (
                   <p className="text-lg text-slate-400 flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
+                    <span>📅</span>
                     Released in {handheld.release_year}
                   </p>
                 )}
@@ -260,7 +252,7 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
                   <div className="flex flex-wrap gap-2">
                     {handheld.key_features.map((feature, index) => (
                       <Badge key={index} variant="outline" className="border-slate-600 text-slate-300">
-                        <Zap className="w-3 h-3 mr-1" />
+                        <span className="mr-1">⚡</span>
                         {feature}
                       </Badge>
                     ))}
@@ -272,11 +264,11 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
               {primaryLinks.length > 0 && (
                 <div className="flex flex-wrap gap-3">
                   {primaryLinks.map((link) => {
-                    const IconComponent = linkTypeIcons[link.link_type as keyof typeof linkTypeIcons] || ExternalLink
+                    const iconEmoji = linkTypeIcons[link.link_type as keyof typeof linkTypeIcons]?.() || "🔗"
                     return (
                       <Button key={link.id} asChild className="bg-purple-600 hover:bg-purple-700 text-white">
                         <a href={link.url} target="_blank" rel="noopener noreferrer">
-                          <IconComponent className="w-4 h-4 mr-2" />
+                          <span className="mr-2">{iconEmoji}</span>
                           {link.name}
                         </a>
                       </Button>
@@ -307,7 +299,7 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Cpu className="w-5 h-5" />
+                  <span>💻</span>
                   Technical Specifications
                 </CardTitle>
               </CardHeader>
@@ -315,7 +307,7 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {handheld.screen_size && (
                     <div className="flex items-center gap-3">
-                      <Monitor className="w-5 h-5 text-slate-400" />
+                      <span className="text-slate-400">🖥️</span>
                       <div>
                         <div className="text-sm text-slate-400">Display</div>
                         <div className="text-white font-medium">{handheld.screen_size}</div>
@@ -324,7 +316,7 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
                   )}
                   {handheld.cpu && (
                     <div className="flex items-center gap-3">
-                      <Cpu className="w-5 h-5 text-slate-400" />
+                      <span className="text-slate-400">💻</span>
                       <div>
                         <div className="text-sm text-slate-400">Processor</div>
                         <div className="text-white font-medium">{handheld.cpu}</div>
@@ -333,7 +325,7 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
                   )}
                   {handheld.ram && (
                     <div className="flex items-center gap-3">
-                      <HardDrive className="w-5 h-5 text-slate-400" />
+                      <span className="text-slate-400">💾</span>
                       <div>
                         <div className="text-sm text-slate-400">Memory</div>
                         <div className="text-white font-medium">{handheld.ram}</div>
@@ -342,7 +334,7 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
                   )}
                   {handheld.internal_storage && (
                     <div className="flex items-center gap-3">
-                      <HardDrive className="w-5 h-5 text-slate-400" />
+                      <span className="text-slate-400">💽</span>
                       <div>
                         <div className="text-sm text-slate-400">Storage</div>
                         <div className="text-white font-medium">{handheld.internal_storage}</div>
@@ -351,7 +343,7 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
                   )}
                   {handheld.battery_life && (
                     <div className="flex items-center gap-3">
-                      <Battery className="w-5 h-5 text-slate-400" />
+                      <span className="text-slate-400">🔋</span>
                       <div>
                         <div className="text-sm text-slate-400">Battery Life</div>
                         <div className="text-white font-medium">{handheld.battery_life}</div>
@@ -360,7 +352,7 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
                   )}
                   {handheld.weight && (
                     <div className="flex items-center gap-3">
-                      <Weight className="w-5 h-5 text-slate-400" />
+                      <span className="text-slate-400">⚖️</span>
                       <div>
                         <div className="text-sm text-slate-400">Weight</div>
                         <div className="text-white font-medium">{handheld.weight}</div>
@@ -369,7 +361,7 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
                   )}
                   {handheld.dimensions && (
                     <div className="flex items-center gap-3">
-                      <Ruler className="w-5 h-5 text-slate-400" />
+                      <span className="text-slate-400">📏</span>
                       <div>
                         <div className="text-sm text-slate-400">Dimensions</div>
                         <div className="text-white font-medium">{handheld.dimensions}</div>
@@ -463,7 +455,7 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
                               <p className="text-xs text-slate-500 mt-2 italic">{compat.compatibility_notes}</p>
                             )}
                           </div>
-                          <ExternalLink className="w-4 h-4 text-slate-400 ml-2 flex-shrink-0" />
+                          <span className="ml-2 flex-shrink-0">🔗</span>
                         </div>
                       </Link>
                     ))}
@@ -509,7 +501,7 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
                 <div className="flex justify-between">
                   <span className="text-slate-400">Added:</span>
                   <span className="text-white flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
+                    <span>📅</span>
                     {new Date(handheld.created_at).toLocaleDateString()}
                   </span>
                 </div>
@@ -525,7 +517,7 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
                 <CardContent>
                   <div className="space-y-3">
                     {secondaryLinks.map((link) => {
-                      const IconComponent = linkTypeIcons[link.link_type as keyof typeof linkTypeIcons] || ExternalLink
+                      const iconEmoji = linkTypeIcons[link.link_type as keyof typeof linkTypeIcons]?.() || "🔗"
                       return (
                         <a
                           key={link.id}
@@ -534,14 +526,14 @@ export default async function HandheldDetailPage({ params }: { params: { slug: s
                           rel="noopener noreferrer"
                           className="flex items-center gap-3 p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors group"
                         >
-                          <IconComponent className="w-4 h-4 text-slate-400 group-hover:text-white" />
+                          <span className="text-slate-400 group-hover:text-white">{iconEmoji}</span>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-white group-hover:text-purple-300">{link.name}</div>
                             {link.description && (
                               <div className="text-sm text-slate-400 truncate">{link.description}</div>
                             )}
                           </div>
-                          <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-slate-300" />
+                          <span className="text-slate-500 group-hover:text-slate-300">🔗</span>
                         </a>
                       )
                     })}

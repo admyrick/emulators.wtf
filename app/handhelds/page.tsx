@@ -3,6 +3,10 @@ import { supabaseAdmin as supabase } from "@/lib/supabase-admin"
 import HandheldsClientPage from "./HandheldsClientPage"
 import { Skeleton } from "@/components/ui/skeleton"
 
+const { data: handhelds } = await supabase
+  .from('handhelds')
+  .select('*')
+
 export const revalidate = 60 // cache for 60s, adjust as needed
 
 async function getHandhelds() {

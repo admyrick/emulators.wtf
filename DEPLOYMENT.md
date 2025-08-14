@@ -225,7 +225,7 @@ docker-compose up -d
    \`\`\`
 
 4. **Configure Nginx**
-   ```nginx
+   \`\`\`nginx
    server {
        listen 80;
        server_name your-domain.com;
