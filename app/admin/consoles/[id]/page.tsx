@@ -6,7 +6,6 @@ import { LinksManager } from "@/components/links-manager"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { notFound } from "next/navigation"
@@ -51,7 +50,7 @@ export default function ConsoleDetailPage({ params }: { params: { id: string } }
       <div className="flex items-center gap-4">
         <Button variant="outline" size="sm" asChild>
           <Link href="/admin/consoles">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <span className="mr-2">←</span>
             Back to Consoles
           </Link>
         </Button>

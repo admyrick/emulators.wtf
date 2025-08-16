@@ -2,7 +2,6 @@ import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Package, ExternalLink, Download, Calendar, Tag, Info, Smartphone, Cpu } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { notFound } from "next/navigation"
@@ -33,9 +32,7 @@ interface CompatibleHandheld {
 interface CompatibleFirmware {
   id: string
   name: string
-  slug: string
   version: string | null
-  image_url: string | null
 }
 
 async function getCfwApp(slug: string) {
@@ -58,17 +55,7 @@ async function getCompatibleHandhelds(appId: string) {
   try {
     const { data, error } = await supabase
       .from("cfw_app_handheld_compatibility")
-      .select(
-        `
-        handhelds (
-          id,
-          name,
-          slug,
-          manufacturer,
-          image_url
-        )
-      `,
-      )
+      .select("handheld_id")
       .eq("cfw_app_id", appId)
 
     if (error) {
@@ -76,7 +63,22 @@ async function getCompatibleHandhelds(appId: string) {
       return []
     }
 
-    return data?.map((item: any) => item.handhelds).filter(Boolean) || []
+    if (!data || data.length === 0) {
+      return []
+    }
+
+    const handheldIds = data.map((item) => item.handheld_id)
+    const { data: handhelds, error: handheldsError } = await supabase
+      .from("handhelds")
+      .select("id, name, slug, manufacturer, image_url")
+      .in("id", handheldIds)
+
+    if (handheldsError) {
+      console.error("Error fetching handheld details:", handheldsError)
+      return []
+    }
+
+    return handhelds || []
   } catch (error) {
     console.error("Error fetching compatible handhelds:", error)
     return []
@@ -87,17 +89,7 @@ async function getCompatibleFirmware(appId: string) {
   try {
     const { data, error } = await supabase
       .from("cfw_app_firmware_compatibility")
-      .select(
-        `
-        custom_firmware (
-          id,
-          name,
-          slug,
-          version,
-          image_url
-        )
-      `,
-      )
+      .select("custom_firmware_id")
       .eq("cfw_app_id", appId)
 
     if (error) {
@@ -105,7 +97,22 @@ async function getCompatibleFirmware(appId: string) {
       return []
     }
 
-    return data?.map((item: any) => item.custom_firmware).filter(Boolean) || []
+    if (!data || data.length === 0) {
+      return []
+    }
+
+    const firmwareIds = data.map((item) => item.custom_firmware_id)
+    const { data: firmware, error: firmwareError } = await supabase
+      .from("custom_firmware")
+      .select("id, name, version")
+      .in("id", firmwareIds)
+
+    if (firmwareError) {
+      console.error("Error fetching firmware details:", firmwareError)
+      return firmware || []
+    }
+
+    return firmware || []
   } catch (error) {
     console.error("Error fetching compatible firmware:", error)
     return []
@@ -148,8 +155,7 @@ export default async function CfwAppDetailPage({ params }: { params: { slug: str
               <div className="flex flex-wrap gap-2 mb-4">
                 {app.category && (
                   <Badge variant="secondary" className="dark:bg-gray-700 dark:text-gray-200">
-                    <Tag className="w-3 h-3 mr-1" />
-                    {app.category}
+                    🏷️ {app.category}
                   </Badge>
                 )}
                 {app.app_type && (
@@ -159,8 +165,7 @@ export default async function CfwAppDetailPage({ params }: { params: { slug: str
                 )}
                 {app.last_updated && (
                   <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    Updated {new Date(app.last_updated).toLocaleDateString()}
+                    📅 Updated {new Date(app.last_updated).toLocaleDateString()}
                   </Badge>
                 )}
               </div>
@@ -168,16 +173,12 @@ export default async function CfwAppDetailPage({ params }: { params: { slug: str
                 {app.app_url && (
                   <Button asChild>
                     <a href={app.app_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Visit App
+                      🔗 Visit App
                     </a>
                   </Button>
                 )}
                 <Button variant="outline" asChild>
-                  <Link href="/cfw-apps">
-                    <Package className="w-4 h-4 mr-2" />
-                    Back to Apps
-                  </Link>
+                  <Link href="/cfw-apps">📦 Back to Apps</Link>
                 </Button>
               </div>
             </div>
@@ -191,10 +192,7 @@ export default async function CfwAppDetailPage({ params }: { params: { slug: str
             {app.description && (
               <Card className="dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 dark:text-white">
-                    <Info className="w-5 h-5" />
-                    Description
-                  </CardTitle>
+                  <CardTitle className="flex items-center gap-2 dark:text-white">ℹ️ Description</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{app.description}</p>
@@ -206,10 +204,7 @@ export default async function CfwAppDetailPage({ params }: { params: { slug: str
             {app.requirements && (
               <Card className="dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 dark:text-white">
-                    <Package className="w-5 h-5" />
-                    Requirements
-                  </CardTitle>
+                  <CardTitle className="flex items-center gap-2 dark:text-white">📦 Requirements</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-700 dark:text-gray-300">{app.requirements}</p>
@@ -221,10 +216,7 @@ export default async function CfwAppDetailPage({ params }: { params: { slug: str
             {app.installation_notes && (
               <Card className="dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 dark:text-white">
-                    <Download className="w-5 h-5" />
-                    Installation Notes
-                  </CardTitle>
+                  <CardTitle className="flex items-center gap-2 dark:text-white">⬇️ Installation Notes</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-700 dark:text-gray-300">{app.installation_notes}</p>
@@ -236,10 +228,7 @@ export default async function CfwAppDetailPage({ params }: { params: { slug: str
             {compatibleHandhelds.length > 0 && (
               <Card className="dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 dark:text-white">
-                    <Smartphone className="w-5 h-5" />
-                    Compatible Handhelds
-                  </CardTitle>
+                  <CardTitle className="flex items-center gap-2 dark:text-white">📱 Compatible Handhelds</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -281,10 +270,7 @@ export default async function CfwAppDetailPage({ params }: { params: { slug: str
             {compatibleFirmware.length > 0 && (
               <Card className="dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 dark:text-white">
-                    <Cpu className="w-5 h-5" />
-                    Compatible Firmware
-                  </CardTitle>
+                  <CardTitle className="flex items-center gap-2 dark:text-white">🖥️ Compatible Firmware</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -293,22 +279,12 @@ export default async function CfwAppDetailPage({ params }: { params: { slug: str
                         key={firmware.id}
                         className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                       >
-                        {firmware.image_url ? (
-                          <Image
-                            src={firmware.image_url || "/placeholder.svg"}
-                            alt={firmware.name}
-                            width={40}
-                            height={40}
-                            className="rounded-lg object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                            {firmware.name.charAt(0)}
-                          </div>
-                        )}
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                          {firmware.name.charAt(0)}
+                        </div>
                         <div>
                           <Link
-                            href={`/custom-firmware/${firmware.slug}`}
+                            href={`/custom-firmware/${firmware.id}`}
                             className="font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400"
                           >
                             {firmware.name}
@@ -369,8 +345,7 @@ export default async function CfwAppDetailPage({ params }: { params: { slug: str
                 {app.app_url && (
                   <Button className="w-full" asChild>
                     <a href={app.app_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Visit App Page
+                      🔗 Visit App Page
                     </a>
                   </Button>
                 )}
@@ -379,10 +354,7 @@ export default async function CfwAppDetailPage({ params }: { params: { slug: str
                   className="w-full dark:border-gray-600 dark:text-gray-300 bg-transparent"
                   asChild
                 >
-                  <Link href="/cfw-apps">
-                    <Package className="w-4 h-4 mr-2" />
-                    Browse More Apps
-                  </Link>
+                  <Link href="/cfw-apps">📦 Browse More Apps</Link>
                 </Button>
               </CardContent>
             </Card>

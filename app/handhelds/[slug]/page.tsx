@@ -64,6 +64,23 @@ interface CompatibleCustomFirmware {
   }
 }
 
+interface EmulationPerformance {
+  id: string
+  performance_rating: string
+  fps_range: string | null
+  resolution_supported: string | null
+  notes: string | null
+  tested_games: string[] | null
+  settings_notes: string | null
+  console: {
+    id: string
+    name: string
+    slug: string
+    image_url: string | null
+    manufacturer: string | null
+  }
+}
+
 async function getHandheld(slug: string): Promise<Handheld | null> {
   try {
     const { data, error } = await supabase.from("handhelds").select("*").eq("slug", slug)
@@ -84,25 +101,65 @@ async function getHandheld(slug: string): Promise<Handheld | null> {
   }
 }
 
-async function getHandheldLinks(handheldId: string): Promise<HandheldLink[]> {
-  try {
-    const { data, error } = await supabase
-      .from("links")
-      .select("*")
-      .eq("entity_type", "handheld")
-      .eq("entity_id", handheldId)
-      .order("display_order")
+type UiLink = {
+  id: string
+  name: string
+  url: string
+  link_type?: string | null
+  is_primary?: boolean | null
+  display_order?: number | null
+}
 
-    if (error) {
-      console.error("Error fetching handheld links:", error)
-      return []
+function normalizeLinks(rows: any[]): UiLink[] {
+  return (rows ?? []).map((row: any) => {
+    const url = row.url ?? row.link ?? row.href ?? ""
+    let name = row.name ?? row.label ?? row.title ?? (typeof row.link_type === "string" ? row.link_type : null)
+    if (!name) {
+      try {
+        name = url ? new URL(url).hostname : "Link"
+      } catch {
+        name = "Link"
+      }
     }
+    return {
+      id: row.id,
+      name,
+      url,
+      link_type: row.link_type ?? row.type ?? null,
+      is_primary: row.is_primary ?? row.primary ?? null,
+      display_order: row.display_order ?? row.order ?? null,
+    }
+  })
+}
 
-    return data || []
-  } catch (error) {
-    console.error("Error in getHandheldLinks:", error)
-    return []
+async function getHandheldLinks(handheldId: string): Promise<UiLink[]> {
+  const poly = await supabase.from("links").select("*").eq("entity_type", "handheld").eq("entity_id", handheldId)
+  if (!poly.error && (poly.data?.length ?? 0) > 0) {
+    const links = normalizeLinks(poly.data!)
+    links.sort(
+      (a, b) =>
+        Number(!!b.is_primary) - Number(!!a.is_primary) ||
+        (a.display_order ?? 9999) - (b.display_order ?? 9999) ||
+        a.name.localeCompare(b.name),
+    )
+    return links
   }
+
+  const fk = await supabase.from("links").select("*").eq("handheld_id", handheldId)
+  if (!fk.error && (fk.data?.length ?? 0) > 0) {
+    const links = normalizeLinks(fk.data!)
+    links.sort(
+      (a, b) =>
+        Number(!!b.is_primary) - Number(!!a.is_primary) ||
+        (a.display_order ?? 9999) - (b.display_order ?? 9999) ||
+        a.name.localeCompare(b.name),
+    )
+    return links
+  }
+
+  if (poly.error && !fk.error) console.warn("Polymorphic links query error:", poly.error)
+  if (fk.error) console.warn("FK links query error (likely column missing):", fk.error)
+  return []
 }
 
 async function getCompatibleTools(handheldId: string): Promise<CompatibleTool[]> {
@@ -164,6 +221,41 @@ async function getCompatibleCustomFirmware(handheldId: string): Promise<Compatib
   }
 }
 
+async function getEmulationPerformance(handheldId: string): Promise<EmulationPerformance[]> {
+  try {
+    const { data, error } = await supabase
+      .from("emulation_performance")
+      .select(`
+        id,
+        performance_rating,
+        fps_range,
+        resolution_supported,
+        notes,
+        tested_games,
+        settings_notes,
+        console:consoles (
+          id,
+          name,
+          slug,
+          image_url,
+          manufacturer
+        )
+      `)
+      .eq("handheld_id", handheldId)
+      .order("performance_rating", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching emulation performance:", error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error("Error in getEmulationPerformance:", error)
+    return []
+  }
+}
+
 const linkTypeIcons = {
   download: () => "📥",
   official: () => "🔗",
@@ -185,14 +277,40 @@ export default async function HandheldDevicePage({
     notFound()
   }
 
-  const [links, compatibleTools, compatibleCustomFirmware] = await Promise.all([
+  const [links, compatibleTools, compatibleCustomFirmware, emulationPerformance] = await Promise.all([
     getHandheldLinks(handheld.id),
     getCompatibleTools(handheld.id),
     getCompatibleCustomFirmware(handheld.id),
+    getEmulationPerformance(handheld.id),
   ])
 
-  const primaryLinks = links.filter((link) => link.is_primary)
+  const primaryLinks = links.filter((link) => !!link.is_primary)
   const secondaryLinks = links.filter((link) => !link.is_primary)
+
+  const performanceColors = {
+    excellent: "bg-green-600 text-white",
+    good: "bg-blue-600 text-white",
+    fair: "bg-yellow-600 text-white",
+    poor: "bg-orange-600 text-white",
+    unplayable: "bg-red-600 text-white",
+  }
+
+  const getPerformanceIcon = (rating: string) => {
+    switch (rating) {
+      case "excellent":
+        return "🟢"
+      case "good":
+        return "🔵"
+      case "fair":
+        return "🟡"
+      case "poor":
+        return "🟠"
+      case "unplayable":
+        return "🔴"
+      default:
+        return "⚪"
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
@@ -372,6 +490,107 @@ export default async function HandheldDevicePage({
               </CardContent>
             </Card>
 
+            {emulationPerformance.length > 0 && (
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <span>🎮</span>
+                    Emulation Performance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {emulationPerformance.map((perf) => (
+                      <div key={perf.id} className="border border-slate-600 rounded-lg p-4">
+                        <div className="flex items-start gap-4">
+                          {/* Console Image */}
+                          {perf.console.image_url && (
+                            <div className="w-16 h-16 relative bg-slate-700 rounded overflow-hidden flex-shrink-0">
+                              <Image
+                                src={perf.console.image_url || "/placeholder.svg"}
+                                alt={perf.console.name}
+                                fill
+                                className="object-cover"
+                                sizes="64px"
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex-1 min-w-0">
+                            {/* Console Name and Performance Rating */}
+                            <div className="flex items-center gap-3 mb-2">
+                              <Link
+                                href={`/consoles/${perf.console.slug}`}
+                                className="text-lg font-medium text-white hover:text-purple-300 transition-colors"
+                              >
+                                {perf.console.name}
+                              </Link>
+                              <Badge
+                                className={`${performanceColors[perf.performance_rating as keyof typeof performanceColors]} font-medium`}
+                              >
+                                {getPerformanceIcon(perf.performance_rating)} {perf.performance_rating.toUpperCase()}
+                              </Badge>
+                            </div>
+
+                            {/* Performance Details */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                              {perf.fps_range && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-400 text-sm">📊 FPS:</span>
+                                  <span className="text-white font-medium">{perf.fps_range}</span>
+                                </div>
+                              )}
+                              {perf.resolution_supported && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-400 text-sm">🖥️ Resolution:</span>
+                                  <span className="text-white font-medium">{perf.resolution_supported}</span>
+                                </div>
+                              )}
+                              {perf.console.manufacturer && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-400 text-sm">🏢 By:</span>
+                                  <span className="text-white font-medium">{perf.console.manufacturer}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Performance Notes */}
+                            {perf.notes && <p className="text-slate-300 text-sm mb-3">{perf.notes}</p>}
+
+                            {/* Tested Games */}
+                            {perf.tested_games && perf.tested_games.length > 0 && (
+                              <div className="mb-3">
+                                <p className="text-slate-400 text-sm mb-2">🎯 Tested Games:</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {perf.tested_games.map((game, index) => (
+                                    <Badge
+                                      key={index}
+                                      variant="outline"
+                                      className="border-slate-600 text-slate-300 text-xs"
+                                    >
+                                      {game}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Settings Notes */}
+                            {perf.settings_notes && (
+                              <div className="bg-slate-700 rounded p-3">
+                                <p className="text-slate-400 text-sm mb-1">⚙️ Recommended Settings:</p>
+                                <p className="text-slate-300 text-sm">{perf.settings_notes}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Compatible Tools */}
             {compatibleTools.length > 0 && (
               <Card className="bg-slate-800 border-slate-700">
@@ -497,6 +716,19 @@ export default async function HandheldDevicePage({
                   <span className="text-slate-400">Custom Firmware:</span>
                   <span className="text-white">{compatibleCustomFirmware.length}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Emulation Tests:</span>
+                  <span className="text-white">{emulationPerformance.length}</span>
+                </div>
+                {emulationPerformance.length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Best Performance:</span>
+                    <span className="text-white flex items-center gap-1">
+                      {getPerformanceIcon(emulationPerformance[0].performance_rating)}
+                      <span className="capitalize">{emulationPerformance[0].performance_rating}</span>
+                    </span>
+                  </div>
+                )}
                 <Separator className="bg-slate-600" />
                 <div className="flex justify-between">
                   <span className="text-slate-400">Added:</span>
@@ -547,3 +779,4 @@ export default async function HandheldDevicePage({
     </div>
   )
 }
+</merged_code>

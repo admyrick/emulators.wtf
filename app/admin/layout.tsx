@@ -32,6 +32,8 @@ const navigation = [
   { name: "Handhelds", href: "/admin/handhelds", icon: SmartphoneIcon },
   { name: "Custom Firmware", href: "/admin/custom-firmware", icon: CpuIcon },
   { name: "CFW Apps", href: "/admin/cfw-apps", icon: PackageIcon },
+  { name: "Setups", href: "/admin/setups", icon: () => <span>🔧</span> },
+  { name: "Presets", href: "/admin/presets", icon: () => <span>📦</span> },
   { name: "Logs", href: "/admin/logs", icon: FileTextIcon },
   { name: "Settings", href: "/admin/settings", icon: SettingsIcon },
 ]

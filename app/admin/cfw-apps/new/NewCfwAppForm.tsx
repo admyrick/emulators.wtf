@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Package, Plus, X, Save, ArrowLeft, ExternalLink, User, LinkIcon } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { supabase } from "@/lib/supabase"
@@ -211,12 +210,12 @@ export default function NewCfwAppForm() {
       <div className="flex items-center gap-4 mb-8">
         <Button variant="outline" size="sm" asChild>
           <Link href="/admin/cfw-apps">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <span className="mr-2">←</span>
             Back to CFW Apps
           </Link>
         </Button>
         <div className="flex items-center gap-3">
-          <Package className="w-8 h-8 text-blue-600" />
+          <span className="text-2xl">📦</span>
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create CFW App</h1>
             <p className="text-gray-600 dark:text-gray-300">Add a new custom firmware application</p>
@@ -310,7 +309,7 @@ export default function NewCfwAppForm() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
+                  <span>👤</span>
                   Developers
                 </CardTitle>
               </CardHeader>
@@ -323,7 +322,7 @@ export default function NewCfwAppForm() {
                     onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addDeveloper())}
                   />
                   <Button type="button" onClick={addDeveloper}>
-                    <Plus className="w-4 h-4" />
+                    <span>➕</span>
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -331,7 +330,7 @@ export default function NewCfwAppForm() {
                     <Badge key={index} variant="secondary" className="flex items-center gap-1">
                       {developer.developer_name}
                       <button type="button" onClick={() => removeDeveloper(index)} className="ml-1">
-                        <X className="w-3 h-3" />
+                        <span className="text-xs">❌</span>
                       </button>
                     </Badge>
                   ))}
@@ -353,7 +352,7 @@ export default function NewCfwAppForm() {
                     onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addFeature())}
                   />
                   <Button type="button" onClick={addFeature}>
-                    <Plus className="w-4 h-4" />
+                    <span>➕</span>
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -361,7 +360,7 @@ export default function NewCfwAppForm() {
                     <Badge key={index} variant="outline" className="flex items-center gap-1">
                       {feature.feature_name}
                       <button type="button" onClick={() => removeFeature(index)} className="ml-1">
-                        <X className="w-3 h-3" />
+                        <span>❌</span>
                       </button>
                     </Badge>
                   ))}
@@ -406,7 +405,7 @@ export default function NewCfwAppForm() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <ExternalLink className="w-5 h-5" />
+                  <span>🔗</span>
                   URLs
                 </CardTitle>
               </CardHeader>
@@ -438,7 +437,7 @@ export default function NewCfwAppForm() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <LinkIcon className="w-5 h-5" />
+                  <span>🔗</span>
                   Additional Links
                 </CardTitle>
               </CardHeader>
@@ -456,7 +455,7 @@ export default function NewCfwAppForm() {
                       onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
                     />
                     <Button type="button" onClick={addLink}>
-                      <Plus className="w-4 h-4" />
+                      <span>➕</span>
                     </Button>
                   </div>
                 </div>
@@ -468,7 +467,7 @@ export default function NewCfwAppForm() {
                         <span className="text-sm text-muted-foreground ml-2">{link.url}</span>
                       </div>
                       <Button type="button" variant="ghost" size="sm" onClick={() => removeLink(index)}>
-                        <X className="w-4 h-4" />
+                        <span>❌</span>
                       </Button>
                     </div>
                   ))}
@@ -481,7 +480,7 @@ export default function NewCfwAppForm() {
               <CardContent className="pt-6">
                 <div className="space-y-3">
                   <Button type="submit" className="w-full" disabled={saving}>
-                    <Save className="w-4 h-4 mr-2" />
+                    <span className="mr-2">💾</span>
                     {saving ? "Creating..." : "Create CFW App"}
                   </Button>
                   <Button type="button" variant="outline" className="w-full bg-transparent" asChild>

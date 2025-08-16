@@ -14,7 +14,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Trash2, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { deleteCustomFirmware } from "./cfw-actions"
 
@@ -61,7 +60,7 @@ export function DeleteCustomFirmwareButton({ firmwareId }: DeleteCustomFirmwareB
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button variant="destructive" size="sm" disabled={isDeleting}>
-          {isDeleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+          {isDeleting ? <span className="mr-2">⏳</span> : <span className="mr-2">🗑️</span>}
           Delete
         </Button>
       </AlertDialogTrigger>

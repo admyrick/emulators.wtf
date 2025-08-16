@@ -5,6 +5,75 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export interface Database {
   public: {
     Tables: {
+      bookmarks: {
+        Row: {
+          id: number
+          title: string | null
+          url: string | null
+          description: string | null
+          favicon_url: string | null
+          screenshot_url: string | null
+          category_id: number | null
+          user_id: number | null
+          is_favorite: boolean | null
+          visit_count: number | null
+          last_visited_at: string | null
+          time_spent_minutes: number | null
+          status: string | null
+          priority: string | null
+          notes: string | null
+          mobile_optimized: boolean | null
+          load_time_ms: number | null
+          site_health: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: number
+          title?: string | null
+          url?: string | null
+          description?: string | null
+          favicon_url?: string | null
+          screenshot_url?: string | null
+          category_id?: number | null
+          user_id?: number | null
+          is_favorite?: boolean | null
+          visit_count?: number | null
+          last_visited_at?: string | null
+          time_spent_minutes?: number | null
+          status?: string | null
+          priority?: string | null
+          notes?: string | null
+          mobile_optimized?: boolean | null
+          load_time_ms?: number | null
+          site_health?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: number
+          title?: string | null
+          url?: string | null
+          description?: string | null
+          favicon_url?: string | null
+          screenshot_url?: string | null
+          category_id?: number | null
+          user_id?: number | null
+          is_favorite?: boolean | null
+          visit_count?: number | null
+          last_visited_at?: string | null
+          time_spent_minutes?: number | null
+          status?: string | null
+          priority?: string | null
+          notes?: string | null
+          mobile_optimized?: boolean | null
+          load_time_ms?: number | null
+          site_health?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -170,12 +239,11 @@ export interface Database {
       }
       custom_firmware: {
         Row: {
-          id: string
-          name: string
-          slug: string
+          id: number
+          name: string | null
+          slug: string | null
           description: string | null
           version: string | null
-          release_date: string | null
           download_url: string | null
           documentation_url: string | null
           source_code_url: string | null
@@ -183,16 +251,18 @@ export interface Database {
           installation_difficulty: string | null
           features: string[] | null
           requirements: string[] | null
-          created_at: string
-          updated_at: string
+          compatibility: string[] | null
+          release_date: string | null
+          image_url: string | null
+          created_at: string | null
+          updated_at: string | null
         }
         Insert: {
-          id?: string
-          name: string
-          slug: string
+          id?: number
+          name?: string | null
+          slug?: string | null
           description?: string | null
           version?: string | null
-          release_date?: string | null
           download_url?: string | null
           documentation_url?: string | null
           source_code_url?: string | null
@@ -200,16 +270,18 @@ export interface Database {
           installation_difficulty?: string | null
           features?: string[] | null
           requirements?: string[] | null
-          created_at?: string
-          updated_at?: string
+          compatibility?: string[] | null
+          release_date?: string | null
+          image_url?: string | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Update: {
-          id?: string
-          name?: string
-          slug?: string
+          id?: number
+          name?: string | null
+          slug?: string | null
           description?: string | null
           version?: string | null
-          release_date?: string | null
           download_url?: string | null
           documentation_url?: string | null
           source_code_url?: string | null
@@ -217,9 +289,13 @@ export interface Database {
           installation_difficulty?: string | null
           features?: string[] | null
           requirements?: string[] | null
-          created_at?: string
-          updated_at?: string
+          compatibility?: string[] | null
+          release_date?: string | null
+          image_url?: string | null
+          created_at?: string | null
+          updated_at?: string | null
         }
+        Relationships: []
       }
       emulation_performance: {
         Row: {
@@ -395,55 +471,76 @@ export interface Database {
       }
       handhelds: {
         Row: {
-          battery_life: string | null
-          cpu: string | null
-          created_at: string
+          id: number
+          name: string | null
+          slug: string | null
+          manufacturer: string | null
           description: string | null
-          display: string | null
-          id: string
-          manufacturer: string
-          name: string
-          price: number | null
+          processor: string | null
           ram: string | null
-          release_date: string | null
-          slug: string
           storage: string | null
-          updated_at: string
+          screen_size: string | null
+          resolution: string | null
+          battery_life: string | null
           weight: string | null
+          dimensions: string | null
+          operating_system: string | null
+          connectivity: string[] | null
+          supported_formats: string[] | null
+          price_range: string | null
+          release_date: string | null
+          official_website: string | null
+          image_url: string | null
+          created_at: string | null
+          updated_at: string | null
         }
         Insert: {
-          battery_life?: string | null
-          cpu?: string | null
-          created_at?: string
+          id?: number
+          name?: string | null
+          slug?: string | null
+          manufacturer?: string | null
           description?: string | null
-          display?: string | null
-          id?: string
-          manufacturer: string
-          name: string
-          price?: number | null
+          processor?: string | null
           ram?: string | null
-          release_date?: string | null
-          slug: string
           storage?: string | null
-          updated_at?: string
+          screen_size?: string | null
+          resolution?: string | null
+          battery_life?: string | null
           weight?: string | null
+          dimensions?: string | null
+          operating_system?: string | null
+          connectivity?: string[] | null
+          supported_formats?: string[] | null
+          price_range?: string | null
+          release_date?: string | null
+          official_website?: string | null
+          image_url?: string | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Update: {
-          battery_life?: string | null
-          cpu?: string | null
-          created_at?: string
+          id?: number
+          name?: string | null
+          slug?: string | null
+          manufacturer?: string | null
           description?: string | null
-          display?: string | null
-          id?: string
-          manufacturer?: string
-          name?: string
-          price?: number | null
+          processor?: string | null
           ram?: string | null
-          release_date?: string | null
-          slug?: string
           storage?: string | null
-          updated_at?: string
+          screen_size?: string | null
+          resolution?: string | null
+          battery_life?: string | null
           weight?: string | null
+          dimensions?: string | null
+          operating_system?: string | null
+          connectivity?: string[] | null
+          supported_formats?: string[] | null
+          price_range?: string | null
+          release_date?: string | null
+          official_website?: string | null
+          image_url?: string | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -642,6 +739,14 @@ export type Enums<
     ? PublicSchema["Enums"][PublicEnumNameOrOptions]
     : never
 
+// Check if Supabase environment variables are available
+export const isSupabaseConfigured =
+  typeof process.env.NEXT_PUBLIC_SUPABASE_URL === "string" &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL.length > 0 &&
+  typeof process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY === "string" &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.length > 0
+
+// Create Supabase client for client-side operations
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 

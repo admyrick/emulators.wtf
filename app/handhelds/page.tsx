@@ -3,9 +3,7 @@ import { supabaseAdmin as supabase } from "@/lib/supabase-admin"
 import HandheldsClientPage from "./HandheldsClientPage"
 import { Skeleton } from "@/components/ui/skeleton"
 
-const { data: handhelds } = await supabase
-  .from('handhelds')
-  .select('*')
+const { data: handhelds } = await supabase.from("handhelds").select("*")
 
 export const revalidate = 60 // cache for 60s, adjust as needed
 
@@ -14,9 +12,9 @@ async function getHandhelds() {
     const { data, error } = await supabase
       .from("handhelds")
       .select(
-        "id,name,slug,image_url,manufacturer,description,price_range,release_year,screen_size,cpu,ram,internal_storage,battery_life,weight,dimensions,key_features,created_at,updated_at",
+        "id,name,slug,image_url,manufacturer,description,price_range,release_date,screen_size,processor,ram,storage,battery_life,weight,dimensions,created_at,updated_at",
       )
-      .order("release_year", { ascending: false })
+      .order("release_date", { ascending: false })
       .order("name", { ascending: true })
 
     if (error) throw error

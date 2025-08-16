@@ -33,7 +33,7 @@ export function HandheldCard({ handheld }: HandheldCardProps) {
   return (
     <Card className="h-full hover:shadow-lg transition-shadow duration-200 group relative">
       <CardHeader className="p-0">
-        <Link href={`/handheld/${handheld.slug}`} className="block">
+        <Link href={`/handhelds/${handheld.slug}`} className="block">
           <div className="aspect-video relative bg-muted rounded-t-lg overflow-hidden">
             <Image
               src={handheld.image_url || "/placeholder.svg?height=200&width=300"}
@@ -51,7 +51,7 @@ export function HandheldCard({ handheld }: HandheldCardProps) {
 
       <CardContent className="p-4">
         <div className="mb-3">
-          <Link href={`/handheld/${handheld.slug}`}>
+          <Link href={`/handhelds/${handheld.slug}`}>
             <h3 className="font-semibold text-lg leading-tight mb-1 group-hover:text-primary transition-colors cursor-pointer">
               {handheld.name}
             </h3>
@@ -133,7 +133,7 @@ export function HandheldCard({ handheld }: HandheldCardProps) {
         )}
 
         <div className="mt-4 pt-3 border-t">
-          <Link href={`/handheld/${handheld.slug}`} className="text-sm text-primary hover:text-primary/80 font-medium">
+          <Link href={`/handhelds/${handheld.slug}`} className="text-sm text-primary hover:text-primary/80 font-medium">
             View Details →
           </Link>
         </div>

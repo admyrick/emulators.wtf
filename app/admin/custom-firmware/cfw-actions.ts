@@ -3,6 +3,41 @@
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { revalidatePath } from "next/cache"
 
+async function generateUniqueSlug(baseName: string, customSlug?: string): Promise<string> {
+  const slug =
+    customSlug ||
+    baseName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+
+  // Check if slug exists
+  const { data: existing } = await supabaseAdmin.from("custom_firmware").select("slug").eq("slug", slug).single()
+
+  if (!existing) {
+    return slug // Slug is unique
+  }
+
+  // If slug exists, append numbers until we find a unique one
+  let counter = 1
+  let uniqueSlug = `${slug}-${counter}`
+
+  while (true) {
+    const { data: existingNumbered } = await supabaseAdmin
+      .from("custom_firmware")
+      .select("slug")
+      .eq("slug", uniqueSlug)
+      .single()
+
+    if (!existingNumbered) {
+      return uniqueSlug // Found unique slug
+    }
+
+    counter++
+    uniqueSlug = `${slug}-${counter}`
+  }
+}
+
 export async function createCustomFirmware(formData: FormData) {
   try {
     console.log("Creating custom firmware with data:", Object.fromEntries(formData.entries()))
@@ -11,12 +46,10 @@ export async function createCustomFirmware(formData: FormData) {
     const description = formData.get("description") as string
     const version = formData.get("version") as string
     const release_date = formData.get("release_date") as string
-    const slug =
-      (formData.get("slug") as string) ||
-      name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "")
+    const customSlug = formData.get("slug") as string
+
+    const slug = await generateUniqueSlug(name, customSlug)
+
     const download_url = formData.get("download_url") as string
     const documentation_url = formData.get("documentation_url") as string
     const source_code_url = formData.get("source_code_url") as string
@@ -42,6 +75,16 @@ export async function createCustomFirmware(formData: FormData) {
       console.error("Error parsing features/requirements:", parseError)
     }
 
+    let compatibility: string[] = []
+    try {
+      const compatibilityStr = formData.get("compatibility") as string
+      if (compatibilityStr) {
+        compatibility = JSON.parse(compatibilityStr)
+      }
+    } catch (parseError) {
+      console.error("Error parsing compatibility:", parseError)
+    }
+
     const insertData = {
       name,
       description: description || null,
@@ -56,6 +99,7 @@ export async function createCustomFirmware(formData: FormData) {
       image_url: image_url || null,
       features: features.length > 0 ? features : null,
       requirements: requirements.length > 0 ? requirements : null,
+      compatibility: compatibility.length > 0 ? compatibility : null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
@@ -134,7 +178,7 @@ export async function deleteCustomFirmware(id: string) {
 export async function addCfwCompatibleHandheld(
   customFirmwareId: string,
   handheldId: string,
-  compatibilityNotes?: string
+  compatibilityNotes?: string,
 ) {
   try {
     if (!handheldId) {

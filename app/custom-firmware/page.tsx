@@ -1,6 +1,6 @@
 "use client"
 
-import { supabase } from "@/lib/supabase"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -29,6 +29,7 @@ interface CustomFirmware {
 
 async function getCustomFirmware() {
   try {
+    const supabase = createClientComponentClient()
     const { data, error } = await supabase.from("custom_firmware").select("*").order("created_at", { ascending: false })
 
     if (error) {

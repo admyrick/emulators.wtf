@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Gamepad2 } from "lucide-react"
 
 export default function AdminHandheldsLoading() {
   return (
@@ -10,7 +9,7 @@ export default function AdminHandheldsLoading() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Gamepad2 className="h-8 w-8" />
+            <span className="text-2xl">🎮</span>
             Manage Handhelds
           </h1>
           <p className="text-muted-foreground">Add, edit, and manage gaming handhelds in the database</p>

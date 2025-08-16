@@ -6,10 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { X, Plus } from "lucide-react"
 import { createCustomFirmware } from "../cfw-actions"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -18,42 +16,27 @@ export default function NewCustomFirmwareForm() {
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [features, setFeatures] = useState<string[]>([])
-  const [requirements, setRequirements] = useState<string[]>([])
-  const [newFeature, setNewFeature] = useState("")
-  const [newRequirement, setNewRequirement] = useState("")
+  const [compatibility, setCompatibility] = useState<string[]>([])
+  const [newCompatibility, setNewCompatibility] = useState("")
 
-  const addFeature = () => {
-    if (newFeature.trim() && !features.includes(newFeature.trim())) {
-      setFeatures([...features, newFeature.trim()])
-      setNewFeature("")
+  const addCompatibility = () => {
+    if (newCompatibility.trim() && !compatibility.includes(newCompatibility.trim())) {
+      setCompatibility([...compatibility, newCompatibility.trim()])
+      setNewCompatibility("")
     }
   }
 
-  const removeFeature = (feature: string) => {
-    setFeatures(features.filter((f) => f !== feature))
+  const removeCompatibility = (item: string) => {
+    setCompatibility(compatibility.filter((c) => c !== item))
   }
 
-  const addRequirement = () => {
-    if (newRequirement.trim() && !requirements.includes(newRequirement.trim())) {
-      setRequirements([...requirements, newRequirement.trim()])
-      setNewRequirement("")
-    }
-  }
-
-  const removeRequirement = (requirement: string) => {
-    setRequirements(requirements.filter((r) => r !== requirement))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsSubmitting(true)
     const formData = new FormData(e.currentTarget)
 
     try {
-      // Add features and requirements as JSON strings
-      formData.set("features", JSON.stringify(features))
-      formData.set("requirements", JSON.stringify(requirements))
+      formData.set("compatibility", JSON.stringify(compatibility))
 
       const result = await createCustomFirmware(formData)
 
@@ -111,116 +94,39 @@ export default function NewCustomFirmwareForm() {
               <Textarea id="description" name="description" placeholder="Describe the custom firmware..." rows={4} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="release_date">Release Date</Label>
-                <Input id="release_date" name="release_date" type="date" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="installation_difficulty">Installation Difficulty</Label>
-                <Select name="installation_difficulty">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select difficulty" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                    <SelectItem value="expert">Expert</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="license">License</Label>
-              <Input id="license" name="license" placeholder="e.g., MIT, GPL-3.0, etc." />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Links & Resources</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="download_url">Download URL</Label>
               <Input id="download_url" name="download_url" type="url" placeholder="https://..." />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="documentation_url">Documentation URL</Label>
-              <Input id="documentation_url" name="documentation_url" type="url" placeholder="https://..." />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="source_code_url">Source Code URL</Label>
-              <Input id="source_code_url" name="source_code_url" type="url" placeholder="https://..." />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="image_url">Image URL</Label>
-              <Input id="image_url" name="image_url" type="url" placeholder="https://..." />
-            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Features</CardTitle>
+            <CardTitle>Compatibility</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
               <Input
-                value={newFeature}
-                onChange={(e) => setNewFeature(e.target.value)}
-                placeholder="Add a feature..."
-                onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addFeature())}
+                value={newCompatibility}
+                onChange={(e) => setNewCompatibility(e.target.value)}
+                placeholder="Add compatible device..."
+                onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addCompatibility())}
               />
-              <Button type="button" onClick={addFeature} size="sm">
-                <Plus className="h-4 w-4" />
+              <Button type="button" onClick={addCompatibility} size="sm">
+                ➕
               </Button>
             </div>
             <div className="flex flex-wrap gap-2">
-              {features.map((feature) => (
-                <Badge key={feature} variant="secondary" className="flex items-center gap-1">
-                  {feature}
-                  <button type="button" onClick={() => removeFeature(feature)} className="ml-1 hover:text-destructive">
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Requirements</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                value={newRequirement}
-                onChange={(e) => setNewRequirement(e.target.value)}
-                placeholder="Add a requirement..."
-                onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addRequirement())}
-              />
-              <Button type="button" onClick={addRequirement} size="sm">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {requirements.map((requirement) => (
-                <Badge key={requirement} variant="secondary" className="flex items-center gap-1">
-                  {requirement}
+              {compatibility.map((item) => (
+                <Badge key={item} variant="secondary" className="flex items-center gap-1">
+                  {item}
                   <button
                     type="button"
-                    onClick={() => removeRequirement(requirement)}
+                    onClick={() => removeCompatibility(item)}
                     className="ml-1 hover:text-destructive"
                   >
-                    <X className="h-3 w-3" />
+                    ❌
                   </button>
                 </Badge>
               ))}

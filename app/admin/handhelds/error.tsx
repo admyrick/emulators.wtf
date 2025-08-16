@@ -2,7 +2,6 @@
 
 import { useEffect } from "react"
 import Link from "next/link"
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -23,7 +22,7 @@ export default function AdminHandheldsError({
       <Card className="w-full max-w-xl bg-slate-800 border-slate-700">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-            <AlertTriangle className="w-6 h-6 text-red-600" />
+            <span className="text-2xl">⚠️</span>
           </div>
           <CardTitle className="text-xl font-bold text-white">Something went wrong</CardTitle>
         </CardHeader>
@@ -37,19 +36,17 @@ export default function AdminHandheldsError({
             <pre className="mt-2 text-xs text-red-300 whitespace-pre-wrap break-words">
               {error?.message || "Unknown error"}
             </pre>
-            {error?.digest && (
-              <div className="mt-2 text-[10px] text-slate-400">Digest: {error.digest}</div>
-            )}
+            {error?.digest && <div className="mt-2 text-[10px] text-slate-400">Digest: {error.digest}</div>}
           </details>
 
           <div className="flex gap-3 justify-center">
             <Button onClick={reset} className="bg-purple-600 hover:bg-purple-700 text-white">
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <span className="mr-2">🔄</span>
               Reload Page
             </Button>
-            <Button asChild variant="outline" className="border-slate-600 text-white hover:bg-slate-700">
+            <Button asChild variant="outline" className="border-slate-600 text-white hover:bg-slate-700 bg-transparent">
               <Link href="/admin/handhelds">
-                <Home className="w-4 h-4 mr-2" />
+                <span className="mr-2">🏠</span>
                 Back to Handhelds
               </Link>
             </Button>
