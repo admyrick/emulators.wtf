@@ -1,10 +1,10 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
@@ -44,7 +44,70 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
+
+      if (!user && pathname !== "/admin/signin") {
+        router.push("/admin/signin")
+      }
+    }
+
+    getUser()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
+      setLoading(false)
+
+      if (!session?.user && pathname !== "/admin/signin") {
+        router.push("/admin/signin")
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [pathname, router])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push("/admin/signin")
+  }
+
+  if (pathname === "/admin/signin") {
+    return children
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Redirecting to sign in...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,47 +115,58 @@ export default function AdminLayout({
       <div className="lg:hidden">
         <div className="flex items-center justify-between p-4 border-b">
           <h1 className="text-xl font-semibold">Admin Dashboard</h1>
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
-                <MenuIcon />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-64">
-              <div className="flex flex-col h-full">
-                <div className="p-4 border-b">
-                  <h2 className="text-lg font-semibold">Emulators.wtf</h2>
-                  <p className="text-sm text-muted-foreground">Admin Panel</p>
-                </div>
-                <nav className="flex-1 p-4">
-                  <ul className="space-y-2">
-                    {navigation.map((item) => {
-                      const Icon = item.icon
-                      const isActive =
-                        pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              Sign Out
+            </Button>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <MenuIcon />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64">
+                <div className="flex flex-col h-full">
+                  <div className="p-4 border-b">
+                    <h2 className="text-lg font-semibold">Emulators.wtf</h2>
+                    <p className="text-sm text-muted-foreground">Admin Panel</p>
+                    <p className="text-xs text-muted-foreground mt-1">{user.email}</p>
+                  </div>
+                  <nav className="flex-1 p-4">
+                    <ul className="space-y-2">
+                      {navigation.map((item) => {
+                        const Icon = item.icon
+                        const isActive =
+                          pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))
 
-                      return (
-                        <li key={item.name}>
-                          <Link
-                            href={item.href}
-                            className={cn(
-                              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                              isActive
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                            )}
-                          >
-                            <Icon />
-                            {item.name}
-                          </Link>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </nav>
-              </div>
-            </SheetContent>
-          </Sheet>
+                        return (
+                          <li key={item.name}>
+                            <Link
+                              href={item.href}
+                              className={cn(
+                                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                                isActive
+                                  ? "bg-primary text-primary-foreground"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                              )}
+                            >
+                              <Icon />
+                              {item.name}
+                            </Link>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </nav>
+                  <div className="p-4 border-t">
+                    <Button variant="outline" className="w-full bg-transparent" onClick={handleSignOut}>
+                      Sign Out
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
 
@@ -111,6 +185,7 @@ export default function AdminLayout({
                 <div>
                   <h2 className="text-lg font-semibold">Emulators.wtf</h2>
                   <p className="text-sm text-muted-foreground">Admin Panel</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
               )}
               {sidebarCollapsed && (
@@ -144,8 +219,6 @@ export default function AdminLayout({
                       >
                         <Icon />
                         {!sidebarCollapsed && <span>{item.name}</span>}
-
-                        {/* Tooltip for collapsed state */}
                         {sidebarCollapsed && (
                           <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                             {item.name}
@@ -157,6 +230,14 @@ export default function AdminLayout({
                 })}
               </ul>
             </nav>
+
+            {!sidebarCollapsed && (
+              <div className="p-4 border-t">
+                <Button variant="outline" className="w-full bg-transparent" onClick={handleSignOut}>
+                  Sign Out
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Collapse button */}
@@ -172,6 +253,13 @@ export default function AdminLayout({
 
         {/* Main content */}
         <div className={cn("flex-1 transition-all duration-300", sidebarCollapsed ? "ml-16" : "ml-64")}>
+          <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex h-14 items-center justify-end px-6">
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                Sign Out
+              </Button>
+            </div>
+          </div>
           <main className="p-6">{children}</main>
         </div>
       </div>

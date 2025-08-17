@@ -10,6 +10,8 @@ import { ArrowLeft, Star } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { notFound } from "next/navigation"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { EditEmulatorForm } from "./EditEmulatorForm"
 
 async function getEmulatorWithLinks(id: string) {
   const [emulatorResult, linksResult] = await Promise.all([
@@ -61,72 +63,98 @@ export default function EmulatorDetailPage({ params }: { params: { id: string } 
         </h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Emulator Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Emulator Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {emulator.image_url && (
-              <div className="aspect-video relative">
-                <Image
-                  src={emulator.image_url || "/placeholder.svg"}
-                  alt={emulator.name}
-                  fill
-                  className="object-cover rounded"
-                />
-              </div>
-            )}
-            <div className="space-y-2">
-              <div>
-                <strong>Name:</strong> {emulator.name}
-              </div>
-              {emulator.developer && (
-                <div>
-                  <strong>Developer:</strong> <Badge variant="secondary">{emulator.developer}</Badge>
-                </div>
-              )}
-              {emulator.supported_platforms && emulator.supported_platforms.length > 0 && (
-                <div>
-                  <strong>Supported Platforms:</strong>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {emulator.supported_platforms.map((platform) => (
-                      <Badge key={platform} variant="outline" className="text-xs">
-                        {platform}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {emulator.features && emulator.features.length > 0 && (
-                <div>
-                  <strong>Features:</strong>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {emulator.features.map((feature) => (
-                      <Badge key={feature} variant="secondary" className="text-xs">
-                        {feature}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {emulator.description && (
-                <div>
-                  <strong>Description:</strong>
-                  <p className="mt-1 text-muted-foreground">{emulator.description}</p>
-                </div>
-              )}
-              <div>
-                <strong>Slug:</strong> <code className="text-sm bg-muted px-2 py-1 rounded">{emulator.slug}</code>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="details" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="edit">Edit</TabsTrigger>
+          <TabsTrigger value="links">Links</TabsTrigger>
+        </TabsList>
 
-        {/* Links Manager */}
-        <LinksManager entityType="emulator" entityId={emulator.id} links={links} onLinksChange={() => refetch()} />
-      </div>
+        <TabsContent value="details" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Emulator Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {emulator.image_url && (
+                  <div className="aspect-video relative">
+                    <Image
+                      src={emulator.image_url || "/placeholder.svg"}
+                      alt={emulator.name}
+                      fill
+                      className="object-cover rounded"
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <div>
+                    <strong>Name:</strong> {emulator.name}
+                  </div>
+                  {emulator.developer && (
+                    <div>
+                      <strong>Developer:</strong> <Badge variant="secondary">{emulator.developer}</Badge>
+                    </div>
+                  )}
+                  {emulator.emulated_system && (
+                    <div>
+                      <strong>Emulated System:</strong> {emulator.emulated_system}
+                    </div>
+                  )}
+                  {emulator.supported_platforms && emulator.supported_platforms.length > 0 && (
+                    <div>
+                      <strong>Supported Platforms:</strong>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {emulator.supported_platforms.map((platform) => (
+                          <Badge key={platform} variant="outline" className="text-xs">
+                            {platform}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {emulator.features && emulator.features.length > 0 && (
+                    <div>
+                      <strong>Features:</strong>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {emulator.features.map((feature) => (
+                          <Badge key={feature} variant="secondary" className="text-xs">
+                            {feature}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {emulator.description && (
+                    <div>
+                      <strong>Description:</strong>
+                      <p className="mt-1 text-muted-foreground">{emulator.description}</p>
+                    </div>
+                  )}
+                  <div>
+                    <strong>Slug:</strong> <code className="text-sm bg-muted px-2 py-1 rounded">{emulator.slug}</code>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="edit" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Edit Emulator</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EditEmulatorForm emulator={emulator} onSuccess={() => refetch()} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="links" className="space-y-6">
+          <LinksManager entityType="emulator" entityId={emulator.id} links={links} onLinksChange={() => refetch()} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ToolCard } from "@/components/tool-card"
 import {
   Dialog,
   DialogContent,
@@ -226,7 +225,44 @@ export default function AdminToolsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {tools?.map((tool) => (
-            <ToolCard key={tool.id} tool={tool} />
+            <div key={tool.id} className="bg-card rounded-lg border p-6 hover:shadow-md transition-shadow">
+              <div className="aspect-video bg-muted rounded-lg mb-4 flex items-center justify-center">
+                {tool.image_url ? (
+                  <img
+                    src={tool.image_url || "/placeholder.svg"}
+                    alt={tool.name}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <Wrench className="w-12 h-12 text-muted-foreground" />
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg">{tool.name}</h3>
+                {tool.description && <p className="text-sm text-muted-foreground line-clamp-2">{tool.description}</p>}
+
+                <div className="flex items-center justify-between pt-4">
+                  <div className="flex gap-2">
+                    <Button asChild size="sm">
+                      <Link href={`/admin/tools/${tool.id}`}>
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/tool/${tool.slug}`} target="_blank">
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        View
+                      </Link>
+                    </Button>
+                  </div>
+                  <Button size="sm" variant="destructive" onClick={() => handleDelete(tool.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       )}

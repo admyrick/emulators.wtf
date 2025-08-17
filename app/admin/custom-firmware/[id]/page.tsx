@@ -1,169 +1,177 @@
-import { notFound } from "next/navigation"
+"use client"
+
+import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { LinksManager } from "@/components/links-manager"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { CustomFirmwareForm } from "./CustomFirmwareForm"
-import { CompatibleHandheldsManager } from "./CompatibleHandheldsManager"
-import { DeleteCustomFirmwareButton } from "../DeleteCustomFirmwareButton"
+import Image from "next/image"
+import { notFound } from "next/navigation"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { EditCustomFirmwareForm } from "./EditCustomFirmwareForm"
 
-interface CustomFirmware {
-  id: string
-  name: string
-  slug: string
-  description: string | null
-  version: string | null
-  release_date: string | null
-  download_url: string | null
-  documentation_url: string | null
-  source_code_url: string | null
-  license: string | null
-  installation_difficulty: string | null
-  features: string[] | null
-  requirements: string[] | null
-  created_at: string
-  updated_at: string
-}
-
-interface CompatibleHandheld {
-  id: string
-  handheld_id: string
-  compatibility_notes: string | null
-  handheld: {
-    id: string
-    name: string
-    manufacturer: string
-    slug: string
-  }
-}
-
-async function getCustomFirmware(id: string): Promise<CustomFirmware | null> {
-  try {
-    const { data, error } = await supabase.from("custom_firmware").select("*").eq("id", id).single()
-
-    if (error) {
-      console.error("Error fetching custom firmware:", error)
-      return null
-    }
-
-    return data
-  } catch (error) {
-    console.error("Error in getCustomFirmware:", error)
-    return null
-  }
-}
-
-async function getCompatibleHandhelds(firmwareId: string): Promise<CompatibleHandheld[]> {
-  try {
-    const { data, error } = await supabase
-      .from("cfw_compatible_handhelds")
-      .select(`
-        id,
-        handheld_id,
-        compatibility_notes,
-        handheld:handhelds(
-          id,
-          name,
-          manufacturer,
-          slug
-        )
-      `)
-      .eq("custom_firmware_id", firmwareId)
-      .order("created_at", { ascending: false })
-
-    if (error) {
-      console.error("Error fetching compatible handhelds:", error)
-      return []
-    }
-
-    return data || []
-  } catch (error) {
-    console.error("Error in getCompatibleHandhelds:", error)
-    return []
-  }
-}
-
-async function getAllHandhelds() {
-  try {
-    const { data, error } = await supabase
-      .from("handhelds")
-      .select("id, name, manufacturer, slug")
-      .order("manufacturer", { ascending: true })
-      .order("name", { ascending: true })
-
-    if (error) {
-      console.error("Error fetching handhelds:", error)
-      return []
-    }
-
-    return data || []
-  } catch (error) {
-    console.error("Error in getAllHandhelds:", error)
-    return []
-  }
-}
-
-export default async function CustomFirmwareDetailPage({
-  params,
-}: {
-  params: { id: string }
-}) {
-  const [firmware, compatibleHandhelds, allHandhelds] = await Promise.all([
-    getCustomFirmware(params.id),
-    getCompatibleHandhelds(params.id),
-    getAllHandhelds(),
+async function getCustomFirmwareWithLinks(id: string) {
+  const [firmwareResult, linksResult] = await Promise.all([
+    supabase.from("custom_firmware").select("*").eq("id", id).single(),
+    supabase.from("links").select("*").eq("entity_type", "custom_firmware").eq("entity_id", id).order("display_order"),
   ])
 
-  if (!firmware) {
+  if (firmwareResult.error) throw firmwareResult.error
+
+  return {
+    firmware: firmwareResult.data,
+    links: linksResult.data || [],
+  }
+}
+
+export default function CustomFirmwareDetailPage({ params }: { params: { id: string } }) {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["custom-firmware-detail", params.id],
+    queryFn: () => getCustomFirmwareWithLinks(params.id),
+  })
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-64 bg-muted rounded animate-pulse" />
+        <div className="h-64 bg-muted rounded animate-pulse" />
+      </div>
+    )
+  }
+
+  if (!data?.firmware) {
     notFound()
   }
 
+  const { firmware, links } = data
+
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex items-center gap-4 mb-8">
-        <Button asChild variant="outline" size="sm">
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="outline" size="sm" asChild>
           <Link href="/admin/custom-firmware">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Custom Firmware
           </Link>
         </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold">{firmware.name}</h1>
-          <p className="text-muted-foreground">Edit custom firmware details and manage compatibility</p>
-        </div>
-        <DeleteCustomFirmwareButton firmwareId={firmware.id} />
+        <h1 className="text-3xl font-bold">{firmware.name}</h1>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Firmware Details</CardTitle>
-              <CardDescription>Update the basic information for this custom firmware</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CustomFirmwareForm firmware={firmware} />
-            </CardContent>
-          </Card>
-        </div>
+      <Tabs defaultValue="details" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="edit">Edit</TabsTrigger>
+          <TabsTrigger value="links">Links</TabsTrigger>
+        </TabsList>
 
-        <div className="space-y-6">
+        <TabsContent value="details" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Compatible Handhelds</CardTitle>
-              <CardDescription>Manage which handheld devices are compatible with this firmware</CardDescription>
+              <CardTitle>Custom Firmware Details</CardTitle>
             </CardHeader>
-            <CardContent>
-              <CompatibleHandheldsManager
-                firmwareId={firmware.id}
-                compatibleHandhelds={compatibleHandhelds}
-                allHandhelds={allHandhelds}
-              />
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {firmware.image_url && (
+                  <div className="aspect-video relative">
+                    <Image
+                      src={firmware.image_url || "/placeholder.svg"}
+                      alt={firmware.name}
+                      fill
+                      className="object-cover rounded"
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <div>
+                    <strong>Name:</strong> {firmware.name}
+                  </div>
+                  {firmware.version && (
+                    <div>
+                      <strong>Version:</strong> <Badge variant="secondary">{firmware.version}</Badge>
+                    </div>
+                  )}
+                  {firmware.developers && (
+                    <div>
+                      <strong>Developers:</strong> {firmware.developers}
+                    </div>
+                  )}
+                  {firmware.stability && (
+                    <div>
+                      <strong>Stability:</strong> <Badge variant="outline">{firmware.stability}</Badge>
+                    </div>
+                  )}
+                  {firmware.license && (
+                    <div>
+                      <strong>License:</strong> {firmware.license}
+                    </div>
+                  )}
+                  {firmware.installer_type && (
+                    <div>
+                      <strong>Installer Type:</strong> {firmware.installer_type}
+                    </div>
+                  )}
+                  {firmware.supported_devices && firmware.supported_devices.length > 0 && (
+                    <div>
+                      <strong>Supported Devices:</strong>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {firmware.supported_devices.map((device) => (
+                          <Badge key={device} variant="outline" className="text-xs">
+                            {device}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {firmware.features && (
+                    <div>
+                      <strong>Features:</strong>
+                      <p className="mt-1 text-muted-foreground">{firmware.features}</p>
+                    </div>
+                  )}
+                  {firmware.description && (
+                    <div>
+                      <strong>Description:</strong>
+                      <p className="mt-1 text-muted-foreground">{firmware.description}</p>
+                    </div>
+                  )}
+                  {firmware.notes && (
+                    <div>
+                      <strong>Notes:</strong>
+                      <p className="mt-1 text-muted-foreground">{firmware.notes}</p>
+                    </div>
+                  )}
+                  <div>
+                    <strong>Slug:</strong> <code className="text-sm bg-muted px-2 py-1 rounded">{firmware.slug}</code>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="edit" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Edit Custom Firmware</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EditCustomFirmwareForm firmware={firmware} onSuccess={() => refetch()} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="links" className="space-y-6">
+          <LinksManager
+            entityType="custom_firmware"
+            entityId={firmware.id}
+            links={links}
+            onLinksChange={() => refetch()}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

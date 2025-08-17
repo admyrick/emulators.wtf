@@ -1,10 +1,9 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useTransition, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { createGame } from "@/app/admin/actions"
+import { updateGame } from "@/app/admin/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,24 +18,41 @@ type ConsoleOption = {
   manufacturer: string | null
 }
 
-export default function NewGameForm({
+type Game = {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  console_id: string | null
+  developer: string | null
+  publisher: string | null
+  genre: string | null
+  release_date: string | null
+  image_url: string | null
+}
+
+export default function EditGameForm({
+  game,
   consoles = [],
+  onSuccess,
 }: {
+  game: Game
   consoles?: ConsoleOption[]
+  onSuccess?: () => void
 }) {
   const router = useRouter()
   const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
 
-  const [name, setName] = useState("")
-  const [slug, setSlug] = useState("")
-  const [description, setDescription] = useState("")
-  const [consoleId, setConsoleId] = useState("")
-  const [developer, setDeveloper] = useState("")
-  const [publisher, setPublisher] = useState("")
-  const [genre, setGenre] = useState("")
-  const [releaseDate, setReleaseDate] = useState("")
-  const [imageUrl, setImageUrl] = useState("")
+  const [name, setName] = useState(game.name)
+  const [slug, setSlug] = useState(game.slug)
+  const [description, setDescription] = useState(game.description || "")
+  const [consoleId, setConsoleId] = useState(game.console_id || "")
+  const [developer, setDeveloper] = useState(game.developer || "")
+  const [publisher, setPublisher] = useState(game.publisher || "")
+  const [genre, setGenre] = useState(game.genre || "")
+  const [releaseDate, setReleaseDate] = useState(game.release_date || "")
+  const [imageUrl, setImageUrl] = useState(game.image_url || "")
 
   const manufacturerGroups = useMemo(() => {
     const groups: Record<string, ConsoleOption[]> = {}
@@ -57,35 +73,39 @@ export default function NewGameForm({
 
   function onNameChange(val: string) {
     setName(val)
-    setSlug((prev) => (prev ? prev : generateSlug(val)))
+    // Only auto-generate slug if it matches the current game's slug pattern
+    if (slug === generateSlug(game.name)) {
+      setSlug(generateSlug(val))
+    }
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
     const fd = new FormData()
+    fd.set("id", game.id)
     fd.set("name", name.trim())
     fd.set("slug", slug.trim() || generateSlug(name))
-    if (description.trim()) fd.set("description", description.trim())
-    fd.set("console_id", consoleId) // required
-    if (developer.trim()) fd.set("developer", developer.trim())
-    if (publisher.trim()) fd.set("publisher", publisher.trim())
-    if (genre.trim()) fd.set("genre", genre.trim())
-    if (releaseDate) fd.set("release_date", releaseDate)
-    if (imageUrl.trim()) fd.set("image_url", imageUrl.trim())
+    fd.set("description", description.trim())
+    fd.set("console_id", consoleId)
+    fd.set("developer", developer.trim())
+    fd.set("publisher", publisher.trim())
+    fd.set("genre", genre.trim())
+    fd.set("release_date", releaseDate)
+    fd.set("image_url", imageUrl.trim())
 
     startTransition(async () => {
-      const res = await createGame(fd)
+      const res = await updateGame(fd)
       if (!res?.success) {
         toast({
-          title: "Error creating game",
-          description: res?.error || "Failed to create game",
+          title: "Error updating game",
+          description: res?.error || "Failed to update game",
           variant: "destructive",
         })
         return
       }
-      toast({ title: "Game created", description: "Your game has been added." })
-      router.push("/admin/games")
+      toast({ title: "Game updated", description: "Your changes have been saved." })
+      onSuccess?.()
     })
   }
 
@@ -194,16 +214,16 @@ export default function NewGameForm({
         />
       </div>
 
-      <Button type="submit" disabled={isPending || !consoleId} className="w-full sm:w-auto">
+      <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
         {isPending ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Creating...
+            Updating...
           </>
         ) : (
           <>
             <Save className="h-4 w-4 mr-2" />
-            Create Game
+            Update Game
           </>
         )}
       </Button>
