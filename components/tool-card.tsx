@@ -53,14 +53,15 @@ export function ToolCard({ tool }: ToolCardProps) {
           {tool.description && <p className="text-sm text-muted-foreground line-clamp-3">{tool.description}</p>}
           {tool.category && tool.category.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">
-              {tool.category.slice(0, 2).map((cat) => (
-                <Badge key={cat} variant="outline" className="text-xs">
-                  {cat}
-                </Badge>
-              ))}
-              {tool.category.length > 2 && (
+              {Array.isArray(tool.category) &&
+                tool.category.slice(0, 3).map((cat) => (
+                  <Badge key={cat} variant="outline" className="text-xs">
+                    {cat}
+                  </Badge>
+                ))}
+              {tool.category.length > 3 && (
                 <Badge variant="outline" className="text-xs">
-                  +{tool.category.length - 2} more
+                  +{tool.category.length - 3} more
                 </Badge>
               )}
             </div>
@@ -70,3 +71,5 @@ export function ToolCard({ tool }: ToolCardProps) {
     </Link>
   )
 }
+
+export default ToolCard

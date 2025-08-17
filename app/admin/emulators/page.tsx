@@ -61,10 +61,10 @@ export default function AdminEmulatorsPage() {
     queryFn: getConsoles,
   })
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this emulator?")) return
 
-    const result = await deleteEmulator(id)
+    const result = await deleteEmulator(id.toString())
     if (result.success) {
       toast({ title: "Emulator deleted successfully" })
       queryClient.invalidateQueries({ queryKey: ["admin-emulators"] })
@@ -95,7 +95,8 @@ export default function AdminEmulatorsPage() {
       try {
         let result
         if (emulator) {
-          result = await updateEmulator(emulator.id, formData)
+          console.log("[v0] Updating emulator with ID:", emulator.id, "Type:", typeof emulator.id)
+          result = await updateEmulator(emulator.id.toString(), formData)
         } else {
           result = await createEmulator(formData)
         }
@@ -105,8 +106,19 @@ export default function AdminEmulatorsPage() {
           onCancel()
           queryClient.invalidateQueries({ queryKey: ["admin-emulators"] })
         } else {
-          toast({ title: `Failed to ${emulator ? "update" : "create"} emulator`, variant: "destructive" })
+          toast({
+            title: `Failed to ${emulator ? "update" : "create"} emulator`,
+            description: result.error || "Unknown error occurred",
+            variant: "destructive",
+          })
         }
+      } catch (error) {
+        console.error("[v0] Error in form submission:", error)
+        toast({
+          title: `Failed to ${emulator ? "update" : "create"} emulator`,
+          description: "An unexpected error occurred",
+          variant: "destructive",
+        })
       } finally {
         setIsSubmitting(false)
       }
@@ -224,7 +236,14 @@ export default function AdminEmulatorsPage() {
                   <ExternalLink className="w-3 h-3" />
                 </Link>
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditingEmulator(emulator)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  console.log("[v0] Editing emulator:", emulator.id, emulator.name)
+                  setEditingEmulator(emulator)
+                }}
+              >
                 <Edit className="w-3 h-3" />
               </Button>
               <Button size="sm" variant="destructive" onClick={() => handleDelete(emulator.id)}>

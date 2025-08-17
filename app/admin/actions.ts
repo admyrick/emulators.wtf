@@ -222,14 +222,20 @@ export async function updateGame(id: string, formData: FormData) {
       return { success: false, error: error.message }
     }
 
-    console.log("Game updated successfully:", data)
+    if (!data || data.length === 0) {
+      console.error("No game found with ID:", id)
+      return { success: false, error: "Game not found" }
+    }
+
+    const updatedGame = data[0]
+    console.log("Game updated successfully:", updatedGame)
 
     revalidatePath("/admin/games")
     revalidatePath(`/admin/games/${id}`)
-    return { success: true, data }
-  } catch (error) {
+    return { success: true, data: updatedGame }
+  } catch (error: any) {
     console.error("Error in updateGame:", error)
-    return { success: false, error: "Failed to update game" }
+    return { success: false, error: error.message || "Failed to update game" }
   }
 }
 
@@ -412,17 +418,23 @@ export async function updateEmulator(id: string, formData: FormData) {
 
     console.log("Updating emulator data:", emulatorData)
 
-    const { data, error } = await supabase.from("emulators").update(emulatorData).eq("id", id).select().single()
+    const { data, error } = await supabase.from("emulators").update(emulatorData).eq("id", id).select()
 
     if (error) {
       console.error("Database error updating emulator:", error)
       return { success: false, error: error.message }
     }
 
-    console.log("Emulator updated successfully:", data)
+    if (!data || data.length === 0) {
+      console.error("No emulator found with ID:", id)
+      return { success: false, error: "Emulator not found" }
+    }
+
+    const updatedEmulator = data[0]
+    console.log("Emulator updated successfully:", updatedEmulator)
     revalidatePath("/admin/emulators")
     revalidatePath(`/admin/emulators/${id}`)
-    return { success: true, data }
+    return { success: true, data: updatedEmulator }
   } catch (error: any) {
     console.error("Error in updateEmulator:", error)
     return { success: false, error: error.message || "Failed to update emulator" }
@@ -655,7 +667,9 @@ export async function updateLink(id: string, input: Partial<CreateLinkInput>) {
 
     if (data?.entity_type && data?.entity_id) {
       revalidatePath(`/admin/${data.entity_type}s`)
-      revalidatePath(`/admin/${data.entity_type}s/${data.entity_id}`)
+      if (data?.entity_id) {
+        revalidatePath(`/admin/${data.entity_type}s/${data.entity_id}`)
+      }
     }
 
     return { success: true, data }

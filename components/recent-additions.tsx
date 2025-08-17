@@ -2,7 +2,6 @@ import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Clock, ArrowRight, Gamepad2, Smartphone, Monitor, Cpu, Wrench } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -75,17 +74,17 @@ async function getRecentAdditions() {
 function getTypeIcon(type: string) {
   switch (type) {
     case "console":
-      return Monitor
+      return "🖥️"
     case "handheld":
-      return Smartphone
+      return "📱"
     case "emulator":
-      return Gamepad2
+      return "🎮"
     case "firmware":
-      return Cpu
+      return "💾"
     case "tool":
-      return Wrench
+      return "🔧"
     default:
-      return Monitor
+      return "🖥️"
   }
 }
 
@@ -141,7 +140,7 @@ function getItemLink(item: RecentItem) {
 }
 
 function RecentItemCard({ item }: { item: RecentItem }) {
-  const Icon = getTypeIcon(item.type)
+  const icon = getTypeIcon(item.type)
   const typeColor = getTypeColor(item.type)
   const typeLabel = getTypeLabel(item.type)
   const itemLink = getItemLink(item)
@@ -176,14 +175,14 @@ function RecentItemCard({ item }: { item: RecentItem }) {
             </div>
           </div>
           <Badge variant="outline" className={`text-xs ${typeColor} dark:border-gray-500`}>
-            <Icon className="w-3 h-3 mr-1" />
+            <span className="mr-1">{icon}</span>
             {typeLabel}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="flex items-center gap-2 text-xs text-muted-foreground dark:text-gray-400">
-          <Clock className="w-3 h-3" />
+          <span>🕒</span>
           <span>Added {new Date(item.created_at).toLocaleDateString()}</span>
         </div>
       </CardContent>
@@ -203,7 +202,7 @@ export default async function RecentAdditions() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <Clock className="w-8 h-8 text-gray-600 dark:text-gray-400" />
+            <span className="text-2xl">🕒</span>
             <div>
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Recent Additions</h2>
               <p className="text-gray-600 dark:text-gray-300">Latest items added to the database</p>
@@ -216,7 +215,7 @@ export default async function RecentAdditions() {
           >
             <Link href="/search">
               Browse All
-              <ArrowRight className="w-4 h-4 ml-2" />
+              <span className="ml-2">→</span>
             </Link>
           </Button>
         </div>

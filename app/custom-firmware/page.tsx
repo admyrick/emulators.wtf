@@ -91,14 +91,14 @@ function CustomFirmwareCard({ firmware }: { firmware: CustomFirmware }) {
           {firmware.description && <p className="text-sm text-slate-300 line-clamp-3 mb-3">{firmware.description}</p>}
           {firmware.features && firmware.features.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">
-              {firmware.features.slice(0, 2).map((feature, index) => (
+              {(Array.isArray(firmware.features) ? firmware.features : []).slice(0, 2).map((feature, index) => (
                 <Badge key={index} variant="outline" className="text-xs border-slate-600 text-slate-300">
                   {feature}
                 </Badge>
               ))}
-              {firmware.features.length > 2 && (
+              {(Array.isArray(firmware.features) ? firmware.features : []).length > 2 && (
                 <Badge variant="outline" className="text-xs border-slate-600 text-slate-300">
-                  +{firmware.features.length - 2} more
+                  +{(Array.isArray(firmware.features) ? firmware.features : []).length - 2} more
                 </Badge>
               )}
             </div>

@@ -12,7 +12,7 @@ interface Setup {
   difficulty_level: string
   estimated_time: string
   requirements: string[]
-  steps: string[]
+  steps: { title: string; description: string }[]
   image_url: string
   featured: boolean
   created_at: string
@@ -22,9 +22,38 @@ interface SetupComponent {
   id: string
   component_type: string
   component_id: string
+  component_name: string
   is_required: boolean
   notes: string
   sort_order: number
+}
+
+function getComponentUrl(componentType: string, componentId: string): string | null {
+  switch (componentType.toLowerCase()) {
+    case "handheld":
+    case "handhelds":
+      return `/handhelds/${componentId}`
+    case "emulator":
+    case "emulators":
+      return `/emulator/${componentId}`
+    case "tool":
+    case "tools":
+      return `/tool/${componentId}`
+    case "custom_firmware":
+    case "cfw":
+      return `/custom-firmware/${componentId}`
+    case "cfw_app":
+    case "cfw_apps":
+      return `/cfw-apps/${componentId}`
+    case "game":
+    case "games":
+      return `/game/${componentId}`
+    case "console":
+    case "consoles":
+      return `/console/${componentId}`
+    default:
+      return null
+  }
 }
 
 async function getSetup(slug: string): Promise<Setup | null> {
@@ -49,7 +78,65 @@ async function getSetupComponents(setupId: string): Promise<SetupComponent[]> {
     return []
   }
 
-  return data || []
+  // Enhance components with names from related tables
+  const enhancedComponents = await Promise.all(
+    (data || []).map(async (component) => {
+      let componentName = component.component_name || component.component_type
+
+      // Try to fetch the actual name from the related table
+      try {
+        const tableName = getTableNameFromType(component.component_type)
+        if (tableName) {
+          const { data: relatedData } = await supabase
+            .from(tableName)
+            .select("name, title")
+            .eq(tableName === "setups" ? "id" : "slug", component.component_id)
+            .single()
+
+          if (relatedData) {
+            componentName = relatedData.name || relatedData.title || componentName
+          }
+        }
+      } catch (err) {
+        // Fallback to existing name if fetch fails
+      }
+
+      return {
+        ...component,
+        component_name: componentName,
+      }
+    }),
+  )
+
+  return enhancedComponents
+}
+
+function getTableNameFromType(componentType: string): string | null {
+  switch (componentType.toLowerCase()) {
+    case "handheld":
+    case "handhelds":
+      return "handhelds"
+    case "emulator":
+    case "emulators":
+      return "emulators"
+    case "tool":
+    case "tools":
+      return "tools"
+    case "custom_firmware":
+    case "cfw":
+      return "custom_firmware"
+    case "cfw_app":
+    case "cfw_apps":
+      return "cfw_apps"
+    case "game":
+    case "games":
+      return "games"
+    case "console":
+    case "consoles":
+      return "consoles"
+    default:
+      return null
+  }
 }
 
 const difficultyColors = {
@@ -145,7 +232,8 @@ export default async function SetupDetailPage({ params }: { params: { slug: stri
                         {index + 1}
                       </div>
                       <div className="flex-1">
-                        <p className="text-gray-700 dark:text-gray-300">{step}</p>
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{step.title}</h4>
+                        <p className="text-gray-700 dark:text-gray-300">{step.description}</p>
                       </div>
                     </div>
                   ))}
@@ -159,29 +247,45 @@ export default async function SetupDetailPage({ params }: { params: { slug: stri
             {/* Components */}
             {components.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">🧩 Components Used</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">🧩 Related Components</h3>
                 <div className="space-y-3">
-                  {components.map((component) => (
-                    <div key={component.id} className="flex items-center justify-between">
-                      <div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {component.component_type}
-                        </span>
-                        {component.notes && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{component.notes}</p>
+                  {components.map((component) => {
+                    const componentUrl = getComponentUrl(component.component_type, component.component_id)
+
+                    return (
+                      <div key={component.id} className="flex items-center justify-between">
+                        <div className="flex-1">
+                          {componentUrl ? (
+                            <Link
+                              href={componentUrl}
+                              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              {component.component_name}
+                            </Link>
+                          ) : (
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {component.component_name}
+                            </span>
+                          )}
+                          <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                            {component.component_type}
+                          </div>
+                          {component.notes && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{component.notes}</p>
+                          )}
+                        </div>
+                        {component.is_required ? (
+                          <span className="text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 px-2 py-1 rounded ml-2">
+                            Required
+                          </span>
+                        ) : (
+                          <span className="text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 rounded ml-2">
+                            Optional
+                          </span>
                         )}
                       </div>
-                      {component.is_required ? (
-                        <span className="text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 px-2 py-1 rounded">
-                          Required
-                        </span>
-                      ) : (
-                        <span className="text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 rounded">
-                          Optional
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}

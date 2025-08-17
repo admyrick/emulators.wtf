@@ -22,6 +22,7 @@ export function Header() {
     { name: "Tools", href: "/tools" },
     { name: "Handhelds", href: "/handhelds" },
     { name: "Custom Firmware", href: "/custom-firmware" },
+    { name: "Setups", href: "/setups" },
   ]
 
   const handleMouseEnter = (dropdownName: string) => {
@@ -158,6 +159,41 @@ export function Header() {
                 )
               }
 
+              if (item.name === "Setups") {
+                return (
+                  <div
+                    key="Setups"
+                    className="relative"
+                    onMouseEnter={() => handleMouseEnter("Setups")}
+                    onMouseLeave={handleMouseLeave}
+                  >
+                    <Link href="/setups" className="text-slate-300 hover:text-white transition-colors duration-200">
+                      Setups
+                    </Link>
+                    {activeDropdown === "Setups" && (
+                      <div
+                        className="absolute top-full left-0 mt-1 w-48 bg-slate-800 border border-slate-700 rounded-md shadow-lg py-1 z-50"
+                        onMouseEnter={() => handleMouseEnter("Setups")}
+                        onMouseLeave={handleMouseLeave}
+                      >
+                        <Link
+                          href="/setups"
+                          className="block px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+                        >
+                          Setup Guides
+                        </Link>
+                        <Link
+                          href="/preset-builder"
+                          className="block px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+                        >
+                          Preset Builder
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
               return (
                 <Link
                   key={item.name}
@@ -249,6 +285,27 @@ export function Header() {
                             className="ml-4 mt-1 text-slate-300/80 hover:text-white transition-colors duration-200 text-base"
                           >
                             CFW Apps
+                          </Link>
+                        </div>
+                      )
+                    }
+
+                    if (item.name === "Setups") {
+                      return (
+                        <div key="Setups" className="flex flex-col">
+                          <Link
+                            href="/setups"
+                            onClick={() => setIsOpen(false)}
+                            className="text-slate-300 hover:text-white transition-colors duration-200 text-lg"
+                          >
+                            Setups
+                          </Link>
+                          <Link
+                            href="/preset-builder"
+                            onClick={() => setIsOpen(false)}
+                            className="ml-4 mt-1 text-slate-300/80 hover:text-white transition-colors duration-200 text-base"
+                          >
+                            Preset Builder
                           </Link>
                         </div>
                       )

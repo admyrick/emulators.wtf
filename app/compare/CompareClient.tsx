@@ -22,25 +22,24 @@ type Handheld = {
   image_url: string | null
   manufacturer: string | null
   price_range: string | null
-  release_year: number | null
+  release_date: string | null
   screen_size: string | null
-  cpu: string | null
+  processor: string | null
   ram: string | null
-  internal_storage: string | null
+  storage: string | null
   battery_life: string | null
   weight: string | null
   dimensions: string | null
-  key_features: string[] | null
 }
 
 const FIELD_DEFS: { key: keyof Handheld; label: string; formatter?: (v: any) => string }[] = [
   { key: "manufacturer", label: "Manufacturer" },
-  { key: "release_year", label: "Release Year" },
+  { key: "release_date", label: "Release Year", formatter: (v) => (v ? new Date(v).getFullYear().toString() : "—") },
   { key: "price_range", label: "Price Range" },
   { key: "screen_size", label: "Screen Size" },
-  { key: "cpu", label: "CPU" },
+  { key: "processor", label: "CPU" },
   { key: "ram", label: "RAM" },
-  { key: "internal_storage", label: "Storage" },
+  { key: "storage", label: "Storage" },
   { key: "battery_life", label: "Battery Life" },
   { key: "weight", label: "Weight" },
   { key: "dimensions", label: "Dimensions" },
@@ -59,7 +58,9 @@ function toQueryParam(ids: string[]) {
 async function searchHandhelds(query: string): Promise<Handheld[]> {
   let q = supabase
     .from("handhelds")
-    .select("id,name,slug,image_url,manufacturer,price_range,release_year,screen_size,cpu,ram,internal_storage,battery_life,weight,dimensions,key_features")
+    .select(
+      "id,name,slug,image_url,manufacturer,price_range,release_date,screen_size,processor,ram,storage,battery_life,weight,dimensions",
+    )
     .order("name", { ascending: true })
     .limit(20)
 
@@ -78,7 +79,9 @@ async function getHandheldsByIds(ids: string[]): Promise<Handheld[]> {
   if (!ids.length) return []
   const { data, error } = await supabase
     .from("handhelds")
-    .select("id,name,slug,image_url,manufacturer,price_range,release_year,screen_size,cpu,ram,internal_storage,battery_life,weight,dimensions,key_features")
+    .select(
+      "id,name,slug,image_url,manufacturer,price_range,release_date,screen_size,processor,ram,storage,battery_life,weight,dimensions",
+    )
     .in("id", ids)
 
   if (error) {
@@ -146,17 +149,19 @@ export default function CompareClient({
     setSelectedIds((prev) => prev.filter((x) => x !== id))
   }
 
-  const notSelectedResults = useMemo(
-    () => results.filter((r) => !selectedIds.includes(r.id)),
-    [results, selectedIds],
-  )
+  const notSelectedResults = useMemo(() => results.filter((r) => !selectedIds.includes(r.id)), [results, selectedIds])
 
   return (
     <div className="space-y-8">
       {/* Picker */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
         <div className="w-full md:max-w-md">
-          <Popover open={Boolean(search)} onOpenChange={() => { /* controlled by `search` only */ }}>
+          <Popover
+            open={Boolean(search)}
+            onOpenChange={() => {
+              /* controlled by `search` only */
+            }}
+          >
             <PopoverTrigger asChild>
               <div className="relative">
                 <Input
@@ -177,9 +182,7 @@ export default function CompareClient({
                 <Command shouldFilter={false}>
                   <CommandList>
                     {isSearching && <CommandEmpty>Searching…</CommandEmpty>}
-                    {!isSearching && notSelectedResults.length === 0 && (
-                      <CommandEmpty>No results</CommandEmpty>
-                    )}
+                    {!isSearching && notSelectedResults.length === 0 && <CommandEmpty>No results</CommandEmpty>}
                     {!isSearching && notSelectedResults.length > 0 && (
                       <CommandGroup heading="Add to compare">
                         {notSelectedResults.map((h) => (
@@ -193,7 +196,12 @@ export default function CompareClient({
                           >
                             <div className="relative h-8 w-8 overflow-hidden rounded">
                               {h.image_url ? (
-                                <Image src={h.image_url} alt={h.name} fill className="object-cover" />
+                                <Image
+                                  src={h.image_url || "/placeholder.svg"}
+                                  alt={h.name}
+                                  fill
+                                  className="object-cover"
+                                />
                               ) : (
                                 <div className="h-full w-full bg-muted" />
                               )}
@@ -241,14 +249,14 @@ export default function CompareClient({
             <CardContent className="flex gap-3">
               <div className="relative h-20 w-20 overflow-hidden rounded border">
                 {h.image_url ? (
-                  <Image src={h.image_url} alt={h.name} fill className="object-cover" />
+                  <Image src={h.image_url || "/placeholder.svg"} alt={h.name} fill className="object-cover" />
                 ) : (
                   <div className="h-full w-full bg-muted" />
                 )}
               </div>
               <div className="text-sm text-muted-foreground">
                 {h.price_range && <div>Price: {h.price_range}</div>}
-                {typeof h.release_year === "number" && <div>Year: {h.release_year}</div>}
+                {h.release_date && <div>Year: {new Date(h.release_date).getFullYear()}</div>}
                 <Link href={`/handheld/${h.slug}`} className="text-primary hover:underline">
                   View details
                 </Link>
@@ -264,9 +272,7 @@ export default function CompareClient({
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="bg-muted/50">
-                <th className="sticky left-0 bg-muted/50 backdrop-blur py-3 px-4 text-left font-semibold">
-                  Spec
-                </th>
+                <th className="sticky left-0 bg-muted/50 backdrop-blur py-3 px-4 text-left font-semibold">Spec</th>
                 {selected.map((h) => (
                   <th key={h.id} className="py-3 px-4 text-left font-semibold">
                     {h.name}
@@ -280,7 +286,7 @@ export default function CompareClient({
                   <td className="sticky left-0 bg-background py-3 px-4 font-medium">{f.label}</td>
                   {selected.map((h) => (
                     <td key={h.id + f.key} className="py-3 px-4">
-                      {formatValue(h[f.key])}
+                      {f.formatter ? f.formatter(h[f.key]) : formatValue(h[f.key])}
                     </td>
                   ))}
                 </tr>
@@ -291,15 +297,7 @@ export default function CompareClient({
                 <td className="sticky left-0 bg-background py-3 px-4 font-medium">Key Features</td>
                 {selected.map((h) => (
                   <td key={h.id + "_features"} className="py-3 px-4">
-                    {h.key_features?.length ? (
-                      <ul className="list-disc pl-4 space-y-1">
-                        {h.key_features.map((k) => (
-                          <li key={k}>{k}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      "—"
-                    )}
+                    —
                   </td>
                 ))}
               </tr>

@@ -1,3 +1,4 @@
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { createClient } from "@supabase/supabase-js"
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]

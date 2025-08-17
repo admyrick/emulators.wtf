@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 }
 
 async function getHandhelds() {
-  const { data: handhelds, error } = await supabase
+  const { data: handhelds, error } = await supabaseAdmin
     .from("handhelds")
     .select("*")
     .order("created_at", { ascending: false })
@@ -28,15 +28,14 @@ async function getHandhelds() {
 }
 
 async function getStats() {
-  const [{ count: totalHandhelds }, { data: categories }, { data: retailers }] = await Promise.all([
-    supabase.from("handhelds").select("*", { count: "exact", head: true }),
-    supabase.from("device_categories").select("name"),
-    supabase.from("retailers").select("name"),
+  const [{ count: totalHandhelds }, { data: retailers }] = await Promise.all([
+    supabaseAdmin.from("handhelds").select("*", { count: "exact", head: true }),
+    supabaseAdmin.from("retailers").select("name"),
   ])
 
   return {
     totalHandhelds: totalHandhelds || 0,
-    totalCategories: categories?.length || 0,
+    totalCategories: 0, // Removed non-existent device_categories table
     totalRetailers: retailers?.length || 0,
   }
 }
@@ -119,7 +118,7 @@ export default async function AdminHandheldsPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Manufacturer</TableHead>
                   <TableHead>Price Range</TableHead>
-                  <TableHead>Release Year</TableHead>
+                  <TableHead>Release Date</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="w-[70px]">Actions</TableHead>
                 </TableRow>
@@ -143,8 +142,8 @@ export default async function AdminHandheldsPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {handheld.release_year ? (
-                          <Badge variant="secondary">{handheld.release_year}</Badge>
+                        {handheld.release_date ? (
+                          <Badge variant="secondary">{new Date(handheld.release_date).getFullYear()}</Badge>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}

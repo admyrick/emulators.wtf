@@ -8,13 +8,17 @@ type SearchParams = { ids?: string }
 
 async function getInitialHandhelds(idsParam?: string) {
   if (!idsParam) return []
-  const ids = idsParam.split(",").map((s) => s.trim()).filter(Boolean)
+  const ids = idsParam
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
   if (!ids.length) return []
 
-  // Only select columns we actually use on the client
   const { data, error } = await supabase
     .from("handhelds")
-    .select("id,name,slug,image_url,manufacturer,price_range,release_year,screen_size,cpu,ram,internal_storage,battery_life,weight,dimensions,key_features")
+    .select(
+      "id,name,slug,image_url,manufacturer,price_range,release_date,screen_size,processor,ram,storage,battery_life,weight,dimensions",
+    )
     .in("id", ids)
     .order("name", { ascending: true })
 

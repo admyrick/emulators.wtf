@@ -94,6 +94,13 @@ export function PresetBuilderClient({
     setSaving(true)
 
     try {
+      console.log("[v0] Attempting to save preset:", {
+        name: presetName,
+        description: presetDescription,
+        handheld_id: selectedHandheld ? Number.parseInt(selectedHandheld) : null,
+        items_count: selectedItems.length,
+      })
+
       // Create the preset
       const { data: preset, error: presetError } = await supabase
         .from("presets")
@@ -107,7 +114,12 @@ export function PresetBuilderClient({
         .select()
         .single()
 
-      if (presetError) throw presetError
+      if (presetError) {
+        console.error("[v0] Preset creation error:", presetError)
+        throw presetError
+      }
+
+      console.log("[v0] Preset created successfully:", preset)
 
       // Add preset items
       const presetItems = selectedItems.map((item, index) => ({
@@ -118,10 +130,16 @@ export function PresetBuilderClient({
         sort_order: index,
       }))
 
+      console.log("[v0] Inserting preset items:", presetItems)
+
       const { error: itemsError } = await supabase.from("preset_items").insert(presetItems)
 
-      if (itemsError) throw itemsError
+      if (itemsError) {
+        console.error("[v0] Preset items creation error:", itemsError)
+        throw itemsError
+      }
 
+      console.log("[v0] Preset items created successfully")
       alert("Preset saved successfully!")
 
       // Reset form
@@ -130,8 +148,9 @@ export function PresetBuilderClient({
       setSelectedHandheld("")
       setSelectedItems([])
     } catch (error) {
-      console.error("Error saving preset:", error)
-      alert("Error saving preset. Please try again.")
+      console.error("[v0] Full error saving preset:", error)
+      const errorMessage = error?.message || error?.details || JSON.stringify(error) || "Unknown error occurred"
+      alert(`Error saving preset: ${errorMessage}`)
     } finally {
       setSaving(false)
     }

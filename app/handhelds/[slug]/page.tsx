@@ -46,8 +46,8 @@ interface CompatibleTool {
     id: string
     name: string
     slug: string
-    developer: string | null
-    category: string[] | null
+    developer: string | null // Made developer optional since tools table doesn't have this column
+    category: string | null // Changed from string[] to string since database stores as varchar
     image_url: string | null
   }
 }
@@ -145,20 +145,7 @@ async function getHandheldLinks(handheldId: string): Promise<UiLink[]> {
     return links
   }
 
-  const fk = await supabase.from("links").select("*").eq("handheld_id", handheldId)
-  if (!fk.error && (fk.data?.length ?? 0) > 0) {
-    const links = normalizeLinks(fk.data!)
-    links.sort(
-      (a, b) =>
-        Number(!!b.is_primary) - Number(!!a.is_primary) ||
-        (a.display_order ?? 9999) - (b.display_order ?? 9999) ||
-        a.name.localeCompare(b.name),
-    )
-    return links
-  }
-
-  if (poly.error && !fk.error) console.warn("Polymorphic links query error:", poly.error)
-  if (fk.error) console.warn("FK links query error (likely column missing):", fk.error)
+  if (poly.error) console.warn("Links query error:", poly.error)
   return []
 }
 
@@ -173,11 +160,10 @@ async function getCompatibleTools(handheldId: string): Promise<CompatibleTool[]>
           id,
           name,
           slug,
-          developer,
           category,
           image_url
         )
-      `)
+      `) // Removed developer field since it doesn't exist in tools table
       .eq("handheld_id", handheldId)
 
     if (error) {
@@ -185,7 +171,15 @@ async function getCompatibleTools(handheldId: string): Promise<CompatibleTool[]>
       return []
     }
 
-    return data || []
+    const mappedData = (data || []).map((item) => ({
+      ...item,
+      tool: {
+        ...item.tool,
+        developer: null, // Set developer to null since tools table doesn't have this field
+      },
+    }))
+
+    return mappedData
   } catch (error) {
     console.error("Error in getCompatibleTools:", error)
     return []
@@ -602,7 +596,7 @@ export default async function HandheldDevicePage({
                     {compatibleTools.map((compat) => (
                       <Link
                         key={compat.id}
-                        href={`/tool/${compat.tool.slug}`}
+                        href={`/tools/${compat.tool.slug}`}
                         className="block p-4 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors"
                       >
                         <div className="flex items-center gap-3">
@@ -622,17 +616,11 @@ export default async function HandheldDevicePage({
                             {compat.tool.developer && (
                               <p className="text-sm text-slate-400">by {compat.tool.developer}</p>
                             )}
-                            {compat.tool.category && compat.tool.category.length > 0 && (
+                            {compat.tool.category && (
                               <div className="flex flex-wrap gap-1 mt-1">
-                                {compat.tool.category.slice(0, 2).map((cat, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="text-xs border-slate-600 text-slate-400"
-                                  >
-                                    {cat}
-                                  </Badge>
-                                ))}
+                                <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
+                                  {compat.tool.category}
+                                </Badge>
                               </div>
                             )}
                             {compat.compatibility_notes && (
@@ -779,4 +767,3 @@ export default async function HandheldDevicePage({
     </div>
   )
 }
-</merged_code>

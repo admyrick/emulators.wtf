@@ -3,21 +3,35 @@ import { supabaseAdmin as supabase } from "@/lib/supabase-admin"
 import HandheldsClientPage from "./HandheldsClientPage"
 import { Skeleton } from "@/components/ui/skeleton"
 
-const { data: handhelds } = await supabase.from("handhelds").select("*")
-
 export const revalidate = 60 // cache for 60s, adjust as needed
 
 async function getHandhelds() {
   try {
+    console.log("[v0] Starting handhelds query...")
+
+    const { data: testData, error: testError } = await supabase.from("handhelds").select("*").limit(1)
+
+    if (testError) {
+      console.error("[v0] Test query error:", testError)
+    } else {
+      console.log(
+        "[v0] Test query successful, available columns:",
+        testData?.[0] ? Object.keys(testData[0]) : "No data",
+      )
+    }
+
     const { data, error } = await supabase
       .from("handhelds")
-      .select(
-        "id,name,slug,image_url,manufacturer,description,price_range,release_date,screen_size,processor,ram,storage,battery_life,weight,dimensions,created_at,updated_at",
-      )
-      .order("release_date", { ascending: false })
+      .select("*")
+      .order("created_at", { ascending: false })
       .order("name", { ascending: true })
 
-    if (error) throw error
+    if (error) {
+      console.error("[v0] Main query error:", error)
+      throw error
+    }
+
+    console.log("[v0] Query successful, found", data?.length || 0, "handhelds")
     return data ?? []
   } catch (e) {
     console.error("Error fetching handhelds:", e)

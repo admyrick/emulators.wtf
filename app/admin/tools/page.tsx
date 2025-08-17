@@ -6,8 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { ToolCard } from "@/components/tool-card"
 import {
   Dialog,
   DialogContent,
@@ -27,7 +26,6 @@ const Wrench = () => <span className="inline-block">🔧</span>
 
 import { useState } from "react"
 import { toast } from "@/hooks/use-toast"
-import Image from "next/image"
 import { createTool, updateTool, deleteTool } from "../actions"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -166,77 +164,6 @@ export default function AdminToolsPage() {
           </Button>
         </div>
       </form>
-    )
-  }
-
-  const ToolCard = ({ tool }: { tool: any }) => {
-    return (
-      <Card key={tool.id} className="group hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Wrench className="w-4 h-4" />
-              {tool.name}
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" asChild>
-                <Link href={`/admin/tools/${tool.id}`}>
-                  <ExternalLink className="w-3 h-3" />
-                </Link>
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditingTool(tool)}>
-                <Edit className="w-3 h-3" />
-              </Button>
-              <Button size="sm" variant="destructive" onClick={() => handleDelete(tool.id)}>
-                <Trash2 className="w-3 h-3" />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {tool.image_url && (
-            <div className="aspect-video relative mb-3">
-              <Image src={tool.image_url || "/placeholder.svg"} alt={tool.name} fill className="object-cover rounded" />
-            </div>
-          )}
-          <div className="space-y-2">
-            {tool.developer && <Badge variant="secondary">{tool.developer}</Badge>}
-
-            {tool.category && tool.category.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {tool.category.slice(0, 3).map((cat: string) => (
-                  <Badge key={cat} variant="outline" className="text-xs">
-                    {cat}
-                  </Badge>
-                ))}
-                {tool.category.length > 3 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{tool.category.length - 3} more
-                  </Badge>
-                )}
-              </div>
-            )}
-
-            {tool.supported_platforms && (
-              <div className="flex flex-wrap gap-1">
-                {tool.supported_platforms.slice(0, 3).map((platform: string) => (
-                  <Badge key={platform} variant="outline" className="text-xs">
-                    {platform}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            {tool.price && (
-              <Badge variant="outline" className="text-xs font-semibold">
-                {tool.price}
-              </Badge>
-            )}
-
-            {tool.description && <p className="text-sm text-muted-foreground line-clamp-2">{tool.description}</p>}
-          </div>
-        </CardContent>
-      </Card>
     )
   }
 

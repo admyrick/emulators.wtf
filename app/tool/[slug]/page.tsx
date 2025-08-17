@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Download, ExternalLink, Github, FileText, Users, Calendar, Tag } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { notFound } from "next/navigation"
@@ -15,7 +14,7 @@ interface Tool {
   developer: string | null
   description: string | null
   image_url: string | null
-  category: string[] | null
+  category: string | null
   platforms: string[] | null
   requirements: string | null
   features: string[] | null
@@ -113,13 +112,13 @@ async function getCompatibleHandhelds(toolId: string): Promise<CompatibleHandhel
 }
 
 const linkTypeIcons = {
-  download: Download,
-  official: ExternalLink,
-  documentation: FileText,
-  forum: Users,
-  wiki: FileText,
-  source: Github,
-  general: ExternalLink,
+  download: "⬇️",
+  official: "🔗",
+  documentation: "📄",
+  forum: "👥",
+  wiki: "📄",
+  source: "💻",
+  general: "🔗",
 }
 
 export default async function ToolDetailPage({ params }: { params: { slug: string } }) {
@@ -162,21 +161,19 @@ export default async function ToolDetailPage({ params }: { params: { slug: strin
                 <h1 className="text-4xl font-bold text-white mb-2">{tool.name}</h1>
                 {tool.developer && (
                   <p className="text-xl text-slate-300 flex items-center gap-2">
-                    <Users className="w-5 h-5" />
+                    <span>👥</span>
                     by {tool.developer}
                   </p>
                 )}
               </div>
 
               {/* Categories */}
-              {tool.category && tool.category.length > 0 && (
+              {tool.category && (
                 <div className="flex flex-wrap gap-2">
-                  {tool.category.map((cat, index) => (
-                    <Badge key={index} variant="secondary" className="bg-purple-600 text-white">
-                      <Tag className="w-3 h-3 mr-1" />
-                      {cat}
-                    </Badge>
-                  ))}
+                  <Badge variant="secondary" className="bg-purple-600 text-white">
+                    <span className="mr-1">🏷️</span>
+                    {tool.category}
+                  </Badge>
                 </div>
               )}
 
@@ -198,11 +195,11 @@ export default async function ToolDetailPage({ params }: { params: { slug: strin
               {primaryLinks.length > 0 && (
                 <div className="flex flex-wrap gap-3">
                   {primaryLinks.map((link) => {
-                    const IconComponent = linkTypeIcons[link.link_type as keyof typeof linkTypeIcons] || ExternalLink
+                    const iconEmoji = linkTypeIcons[link.link_type as keyof typeof linkTypeIcons] || "🔗"
                     return (
                       <Button key={link.id} asChild className="bg-purple-600 hover:bg-purple-700 text-white">
                         <a href={link.url} target="_blank" rel="noopener noreferrer">
-                          <IconComponent className="w-4 h-4 mr-2" />
+                          <span className="mr-2">{iconEmoji}</span>
                           {link.name}
                         </a>
                       </Button>
@@ -275,7 +272,7 @@ export default async function ToolDetailPage({ params }: { params: { slug: strin
                     {compatibleHandhelds.map((compat) => (
                       <Link
                         key={compat.id}
-                        href={`/handheld/${compat.handheld.slug}`}
+                        href={`/handhelds/${compat.handheld.slug}`}
                         className="block p-4 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors"
                       >
                         <div className="flex items-center gap-3">
@@ -331,7 +328,7 @@ export default async function ToolDetailPage({ params }: { params: { slug: strin
                 <CardContent>
                   <div className="space-y-3">
                     {secondaryLinks.map((link) => {
-                      const IconComponent = linkTypeIcons[link.link_type as keyof typeof linkTypeIcons] || ExternalLink
+                      const iconEmoji = linkTypeIcons[link.link_type as keyof typeof linkTypeIcons] || "🔗"
                       return (
                         <a
                           key={link.id}
@@ -340,14 +337,14 @@ export default async function ToolDetailPage({ params }: { params: { slug: strin
                           rel="noopener noreferrer"
                           className="flex items-center gap-3 p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors group"
                         >
-                          <IconComponent className="w-4 h-4 text-slate-400 group-hover:text-white" />
+                          <span className="text-slate-400 group-hover:text-white">{iconEmoji}</span>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-white group-hover:text-purple-300">{link.name}</div>
                             {link.description && (
                               <div className="text-sm text-slate-400 truncate">{link.description}</div>
                             )}
                           </div>
-                          <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-slate-300" />
+                          <span className="text-slate-500 group-hover:text-slate-300">🔗</span>
                         </a>
                       )
                     })}
@@ -367,8 +364,8 @@ export default async function ToolDetailPage({ params }: { params: { slug: strin
                   <span className="text-white">{tool.developer || "Unknown"}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Categories:</span>
-                  <span className="text-white">{tool.category?.length || 0}</span>
+                  <span className="text-slate-400">Category:</span>
+                  <span className="text-white">{tool.category || "General"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Platforms:</span>
@@ -382,7 +379,7 @@ export default async function ToolDetailPage({ params }: { params: { slug: strin
                 <div className="flex justify-between">
                   <span className="text-slate-400">Added:</span>
                   <span className="text-white flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
+                    <span>📅</span>
                     {new Date(tool.created_at).toLocaleDateString()}
                   </span>
                 </div>

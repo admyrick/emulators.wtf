@@ -2,6 +2,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
 async function generateUniqueSlug(baseName: string, customSlug?: string): Promise<string> {
   const slug =
@@ -42,6 +43,7 @@ export async function createCustomFirmware(formData: FormData) {
   try {
     console.log("Creating custom firmware with data:", Object.fromEntries(formData.entries()))
 
+    const supabase = supabaseAdmin
     const name = formData.get("name") as string
     const description = formData.get("description") as string
     const version = formData.get("version") as string

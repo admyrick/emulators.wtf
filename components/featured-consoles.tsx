@@ -1,8 +1,6 @@
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Monitor, ArrowRight, Calendar } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -13,7 +11,6 @@ interface Console {
   manufacturer: string
   description: string | null
   image_url: string | null
-  release_year: number | null
   created_at: string
 }
 
@@ -22,7 +19,7 @@ async function getFeaturedConsoles() {
     const { data, error } = await supabase
       .from("consoles")
       .select("*")
-      .order("release_year", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(6)
 
     if (error) {
@@ -63,12 +60,6 @@ function ConsoleCard({ console: consoleData }: { console: Console }) {
               <p className="text-sm text-muted-foreground dark:text-gray-300">{consoleData.manufacturer}</p>
             </div>
           </div>
-          {consoleData.release_year && (
-            <Badge variant="outline" className="text-xs dark:border-gray-500 dark:text-gray-300">
-              <Calendar className="w-3 h-3 mr-1" />
-              {consoleData.release_year}
-            </Badge>
-          )}
         </div>
       </CardHeader>
       <CardContent className="pt-0">
@@ -101,7 +92,7 @@ export default async function FeaturedConsoles() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <Monitor className="w-8 h-8 text-blue-600" />
+            <span className="text-2xl">🎮</span>
             <div>
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Gaming Consoles</h2>
               <p className="text-gray-600 dark:text-gray-300">Classic and modern gaming systems</p>
@@ -114,7 +105,7 @@ export default async function FeaturedConsoles() {
           >
             <Link href="/consoles">
               View All
-              <ArrowRight className="w-4 h-4 ml-2" />
+              <span className="ml-2">→</span>
             </Link>
           </Button>
         </div>

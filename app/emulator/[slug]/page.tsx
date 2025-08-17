@@ -4,11 +4,12 @@ import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
 import { notFound } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Star, Download, ExternalLink, Calendar, User } from "lucide-react"
+import { Star, Download, ExternalLink, Calendar, User, Gamepad2 } from "lucide-react"
 
 async function getEmulatorBySlug(slug: string) {
   const { data, error } = await supabase.from("emulators").select("*").eq("slug", slug).single()
@@ -36,6 +37,65 @@ async function getEmulatorConsoles(consoleIds: string[]) {
 
   if (error) throw error
   return data
+}
+
+async function getCompatibleGames(emulatorId: string) {
+  try {
+    const { data, error } = await supabase
+      .from("game_emulator_compatibility")
+      .select(`
+        id,
+        compatibility_notes,
+        game:games (
+          id,
+          name,
+          slug,
+          genre,
+          release_year
+        )
+      `)
+      .eq("emulator_id", emulatorId)
+      .limit(12) // Limit to first 12 games for performance
+
+    if (error) {
+      console.error("Error fetching compatible games:", error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error("Error in getCompatibleGames:", error)
+    return []
+  }
+}
+
+async function getCompatibleHandhelds(emulatorId: string) {
+  try {
+    const { data, error } = await supabase
+      .from("emulator_handheld_compatibility")
+      .select(`
+        id,
+        compatibility_notes,
+        handheld:handhelds (
+          id,
+          name,
+          slug,
+          manufacturer,
+          image_url
+        )
+      `)
+      .eq("emulator_id", emulatorId)
+
+    if (error) {
+      console.error("Error fetching compatible handhelds:", error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error("Error in getCompatibleHandhelds:", error)
+    return []
+  }
 }
 
 const linkTypeLabels: Record<string, string> = {
@@ -74,6 +134,18 @@ export default function EmulatorPage({ params }: { params: { slug: string } }) {
     queryKey: ["emulator-consoles", emulator?.console_ids],
     queryFn: () => getEmulatorConsoles(emulator!.console_ids || []),
     enabled: !!emulator?.console_ids,
+  })
+
+  const { data: compatibleGames } = useQuery({
+    queryKey: ["emulator-games", emulator?.id],
+    queryFn: () => getCompatibleGames(emulator!.id),
+    enabled: !!emulator?.id,
+  })
+
+  const { data: compatibleHandhelds } = useQuery({
+    queryKey: ["emulator-handhelds", emulator?.id],
+    queryFn: () => getCompatibleHandhelds(emulator!.id),
+    enabled: !!emulator?.id,
   })
 
   if (emulatorLoading) {
@@ -218,6 +290,18 @@ export default function EmulatorPage({ params }: { params: { slug: string } }) {
                 Updated {new Date(emulator.last_updated).toLocaleDateString()}
               </Badge>
             )}
+            {compatibleGames && compatibleGames.length > 0 && (
+              <Badge variant="outline">
+                <Gamepad2 className="w-3 h-3 mr-1" />
+                {compatibleGames.length}+ Games
+              </Badge>
+            )}
+            {compatibleHandhelds && compatibleHandhelds.length > 0 && (
+              <Badge variant="outline">
+                <Gamepad2 className="w-3 h-3 mr-1" />
+                {compatibleHandhelds.length} Handhelds
+              </Badge>
+            )}
           </div>
 
           {emulator.description && <p className="text-muted-foreground mb-6 leading-relaxed">{emulator.description}</p>}
@@ -260,6 +344,95 @@ export default function EmulatorPage({ params }: { params: { slug: string } }) {
         </div>
       </div>
 
+      {compatibleHandhelds && compatibleHandhelds.length > 0 && (
+        <>
+          <Separator className="my-8" />
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4">Compatible Handhelds</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {compatibleHandhelds.map((compat) => (
+                <Card key={compat.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <Link href={`/handhelds/${compat.handheld.slug}`} className="block">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 relative">
+                          <Image
+                            src={
+                              compat.handheld.image_url ||
+                              "/placeholder.svg?height=48&width=48&query=handheld gaming device"
+                            }
+                            alt={compat.handheld.name}
+                            fill
+                            className="object-cover rounded"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold hover:text-primary transition-colors truncate">
+                            {compat.handheld.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">{compat.handheld.manufacturer}</p>
+                          {compat.compatibility_notes && (
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                              {compat.compatibility_notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {compatibleGames && compatibleGames.length > 0 && (
+        <>
+          <Separator className="my-8" />
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4">Compatible Games</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {compatibleGames.map((compat) => (
+                <Card key={compat.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <Link href={`/game/${compat.game.slug}`} className="block">
+                      <div className="space-y-2">
+                        <h3 className="font-semibold hover:text-primary transition-colors line-clamp-2">
+                          {compat.game.name}
+                        </h3>
+                        <div className="flex flex-wrap gap-1">
+                          {compat.game.genre && (
+                            <Badge variant="outline" className="text-xs">
+                              {compat.game.genre}
+                            </Badge>
+                          )}
+                          {compat.game.release_year && (
+                            <Badge variant="outline" className="text-xs">
+                              {compat.game.release_year}
+                            </Badge>
+                          )}
+                        </div>
+                        {compat.compatibility_notes && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{compat.compatibility_notes}</p>
+                        )}
+                      </div>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            {compatibleGames.length >= 12 && (
+              <div className="text-center mt-4">
+                <Button variant="outline" asChild>
+                  <Link href={`/games?emulator=${emulator.id}`}>View All Compatible Games</Link>
+                </Button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       {consoles && consoles.length > 0 && (
         <>
           <Separator className="my-8" />
@@ -269,20 +442,22 @@ export default function EmulatorPage({ params }: { params: { slug: string } }) {
               {consoles.map((console) => (
                 <Card key={console.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 relative">
-                        <Image
-                          src={console.image_url || "/placeholder.svg?height=48&width=48&query=gaming console"}
-                          alt={console.name}
-                          fill
-                          className="object-cover rounded"
-                        />
+                    <Link href={`/console/${console.slug}`} className="block">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 relative">
+                          <Image
+                            src={console.image_url || "/placeholder.svg?height=48&width=48&query=gaming console"}
+                            alt={console.name}
+                            fill
+                            className="object-cover rounded"
+                          />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold hover:text-primary transition-colors">{console.name}</h3>
+                          <p className="text-sm text-muted-foreground">{console.manufacturer}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold">{console.name}</h3>
-                        <p className="text-sm text-muted-foreground">{console.manufacturer}</p>
-                      </div>
-                    </div>
+                    </Link>
                   </CardContent>
                 </Card>
               ))}

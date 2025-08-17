@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
 import { notFound } from "next/navigation"
+import Link from "next/link"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -258,24 +259,26 @@ export default function ConsolePage({ params }: { params: { slug: string } }) {
             <h2 className="text-2xl font-bold mb-4">Recommended Emulators</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {emulators.map((emulator) => (
-                <Card key={emulator.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 relative">
-                        <Image
-                          src={emulator.image_url || "/placeholder.svg?height=48&width=48&query=emulator software"}
-                          alt={emulator.name}
-                          fill
-                          className="object-cover rounded"
-                        />
+                <Link key={emulator.id} href={`/emulator/${emulator.slug}`}>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer hover:bg-muted/50">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 relative">
+                          <Image
+                            src={emulator.image_url || "/placeholder.svg?height=48&width=48&query=emulator software"}
+                            alt={emulator.name}
+                            fill
+                            className="object-cover rounded"
+                          />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">{emulator.name}</h3>
+                          <p className="text-sm text-muted-foreground">{emulator.developer}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold">{emulator.name}</h3>
-                        <p className="text-sm text-muted-foreground">{emulator.developer}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           </div>
@@ -290,22 +293,24 @@ export default function ConsolePage({ params }: { params: { slug: string } }) {
             <h2 className="text-2xl font-bold mb-4">Popular Games</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {games.map((game) => (
-                <Card key={game.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-3">
-                    <div className="aspect-square relative mb-2">
-                      <Image
-                        src={game.image_url || "/placeholder.svg?height=120&width=120&query=game cover"}
-                        alt={game.name}
-                        fill
-                        className="object-cover rounded"
-                      />
-                    </div>
-                    <h3 className="font-medium text-sm truncate">{game.name}</h3>
-                    {game.release_date && (
-                      <p className="text-xs text-muted-foreground">{new Date(game.release_date).getFullYear()}</p>
-                    )}
-                  </CardContent>
-                </Card>
+                <Link key={game.id} href={`/game/${game.slug}`}>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer hover:bg-muted/50">
+                    <CardContent className="p-3">
+                      <div className="aspect-square relative mb-2">
+                        <Image
+                          src={game.image_url || "/placeholder.svg?height=120&width=120&query=game cover"}
+                          alt={game.name}
+                          fill
+                          className="object-cover rounded"
+                        />
+                      </div>
+                      <h3 className="font-medium text-sm truncate">{game.name}</h3>
+                      {game.release_date && (
+                        <p className="text-xs text-muted-foreground">{new Date(game.release_date).getFullYear()}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           </div>
