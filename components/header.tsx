@@ -86,6 +86,41 @@ export function Header() {
                 )
               }
 
+              if (item.name === "Games") {
+                return (
+                  <div
+                    key="Games"
+                    className="relative"
+                    onMouseEnter={() => handleMouseEnter("Games")}
+                    onMouseLeave={handleMouseLeave}
+                  >
+                    <Link href="/games" className="text-slate-300 hover:text-white transition-colors duration-200">
+                      Games
+                    </Link>
+                    {activeDropdown === "Games" && (
+                      <div
+                        className="absolute top-full left-0 mt-1 w-48 bg-slate-800 border border-slate-700 rounded-md shadow-lg py-1 z-50"
+                        onMouseEnter={() => handleMouseEnter("Games")}
+                        onMouseLeave={handleMouseLeave}
+                      >
+                        <Link
+                          href="/games"
+                          className="block px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+                        >
+                          All Games
+                        </Link>
+                        <Link
+                          href="/portmaster"
+                          className="block px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+                        >
+                          PortMaster
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
               if (item.name === "Handhelds") {
                 return (
                   <div
@@ -188,6 +223,12 @@ export function Header() {
                         >
                           Preset Builder
                         </Link>
+                        <Link
+                          href="/presets"
+                          className="block px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+                        >
+                          Presets
+                        </Link>
                       </div>
                     )}
                   </div>
@@ -243,6 +284,27 @@ export function Header() {
                             className="ml-4 mt-1 text-slate-300/80 hover:text-white transition-colors duration-200 text-base"
                           >
                             Consoles
+                          </Link>
+                        </div>
+                      )
+                    }
+
+                    if (item.name === "Games") {
+                      return (
+                        <div key="Games" className="flex flex-col">
+                          <Link
+                            href="/games"
+                            onClick={() => setIsOpen(false)}
+                            className="text-slate-300 hover:text-white transition-colors duration-200 text-lg"
+                          >
+                            Games
+                          </Link>
+                          <Link
+                            href="/portmaster"
+                            onClick={() => setIsOpen(false)}
+                            className="ml-4 mt-1 text-slate-300/80 hover:text-white transition-colors duration-200 text-base"
+                          >
+                            PortMaster
                           </Link>
                         </div>
                       )
@@ -306,6 +368,13 @@ export function Header() {
                             className="ml-4 mt-1 text-slate-300/80 hover:text-white transition-colors duration-200 text-base"
                           >
                             Preset Builder
+                          </Link>
+                          <Link
+                            href="/presets"
+                            onClick={() => setIsOpen(false)}
+                            className="ml-4 mt-1 text-slate-300/80 hover:text-white transition-colors duration-200 text-base"
+                          >
+                            Presets
                           </Link>
                         </div>
                       )

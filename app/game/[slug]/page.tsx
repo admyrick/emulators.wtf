@@ -95,26 +95,46 @@ async function getCompatibleEmulators(gameId: string) {
 
 async function getCompatibleHandhelds(gameId: string) {
   try {
-    const { data, error } = await supabase
+    const { data: compatibilityData, error: compatibilityError } = await supabase
       .from("game_handheld_compatibility")
-      .select(`
-        id,
-        compatibility_notes,
-        handheld:handhelds (
-          id,
-          name,
-          slug,
-          manufacturer
-        )
-      `)
+      .select("id, compatibility_notes, handheld_id")
       .eq("game_id", gameId)
 
-    if (error) {
-      console.error("Error fetching compatible handhelds:", error)
+    if (compatibilityError) {
+      console.error("Error fetching compatibility data:", compatibilityError)
       return []
     }
 
-    return data || []
+    if (!compatibilityData || compatibilityData.length === 0) {
+      return []
+    }
+
+    // Get handheld IDs from compatibility records
+    const handheldIds = compatibilityData.map((comp) => comp.handheld_id).filter(Boolean)
+
+    if (handheldIds.length === 0) {
+      return []
+    }
+
+    // Fetch handheld details separately
+    const { data: handheldsData, error: handheldsError } = await supabase
+      .from("handhelds")
+      .select("id, name, slug, manufacturer")
+      .in("id", handheldIds)
+
+    if (handheldsError) {
+      console.error("Error fetching handhelds:", handheldsError)
+      return []
+    }
+
+    // Combine compatibility data with handheld details
+    return compatibilityData
+      .map((comp) => ({
+        id: comp.id,
+        compatibility_notes: comp.compatibility_notes,
+        handheld: handheldsData?.find((h) => h.id === comp.handheld_id) || null,
+      }))
+      .filter((comp) => comp.handheld) // Only return records with valid handheld data
   } catch (error) {
     console.error("Error fetching compatible handhelds:", error)
     return []

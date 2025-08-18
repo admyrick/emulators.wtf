@@ -1,7 +1,6 @@
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/utils/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import Image from "next/image"
@@ -16,45 +15,43 @@ interface Handheld {
   description: string | null
   image_url: string | null
   price_range: string | null
-  release_year: number | null
+  release_date: string | null
   screen_size: string | null
-  cpu: string | null
+  resolution: string | null
+  processor: string | null
   ram: string | null
-  internal_storage: string | null
+  storage: string | null
   battery_life: string | null
   weight: string | null
   dimensions: string | null
-  key_features: string[] | null
+  operating_system: string | null
+  connectivity: string | null
+  supported_formats: string | null
+  features: string[] | null
+  specifications: any | null
   created_at: string
   updated_at: string
-}
-
-interface HandheldLink {
-  id: string
-  name: string
-  url: string
-  link_type: string
-  description: string | null
-  is_primary: boolean
-  display_order: number
+  display_name?: string
+  recommended?: boolean
+  official_website?: string
 }
 
 interface CompatibleTool {
   id: string
-  compatibility_notes: string | null
+  compatibility_notes: string | null // Updated to match database schema
   tool: {
     id: string
     name: string
     slug: string
-    developer: string | null // Made developer optional since tools table doesn't have this column
-    category: string | null // Changed from string[] to string since database stores as varchar
+    category: string | null
     image_url: string | null
   }
 }
 
 interface CompatibleCustomFirmware {
   id: string
-  compatibility_notes: string | null
+  status: string | null
+  install_notes: string | null
   custom_firmware: {
     id: string
     name: string
@@ -83,74 +80,66 @@ interface EmulationPerformance {
 
 async function getHandheld(slug: string): Promise<Handheld | null> {
   try {
-    const { data, error } = await supabase.from("handhelds").select("*").eq("slug", slug)
+    console.log("[v0] Starting handhelds query...")
+    const supabase = await createClient()
+
+    const testQuery = await supabase.from("handhelds").select("*").limit(1)
+    if (testQuery.data && testQuery.data.length > 0) {
+      console.log("[v0] Test query successful, available columns:", Object.keys(testQuery.data[0]))
+    }
+
+    const { data, error } = await supabase.from("handhelds").select("*").eq("slug", slug).single()
 
     if (error) {
       console.error("Error fetching handheld:", error)
       return null
     }
 
-    if (!data || data.length === 0) {
+    if (!data) {
+      console.log("[v0] No handheld found with slug:", slug)
       return null
     }
 
-    return data[0]
+    console.log("[v0] Query successful, found handheld:", data.name)
+    return data
   } catch (error) {
     console.error("Error in getHandheld:", error)
     return null
   }
 }
 
-type UiLink = {
-  id: string
-  name: string
-  url: string
-  link_type?: string | null
-  is_primary?: boolean | null
-  display_order?: number | null
-}
+async function getHandheldUUID(handheldId: string): Promise<string | null> {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("handheld_uuid_map")
+      .select("device_id")
+      .eq("handheld_id", Number.parseInt(handheldId))
+      .single()
 
-function normalizeLinks(rows: any[]): UiLink[] {
-  return (rows ?? []).map((row: any) => {
-    const url = row.url ?? row.link ?? row.href ?? ""
-    let name = row.name ?? row.label ?? row.title ?? (typeof row.link_type === "string" ? row.link_type : null)
-    if (!name) {
-      try {
-        name = url ? new URL(url).hostname : "Link"
-      } catch {
-        name = "Link"
-      }
+    if (error || !data) {
+      console.log("[v0] No UUID mapping found for handheld ID:", handheldId)
+      return null
     }
-    return {
-      id: row.id,
-      name,
-      url,
-      link_type: row.link_type ?? row.type ?? null,
-      is_primary: row.is_primary ?? row.primary ?? null,
-      display_order: row.display_order ?? row.order ?? null,
-    }
-  })
-}
 
-async function getHandheldLinks(handheldId: string): Promise<UiLink[]> {
-  const poly = await supabase.from("links").select("*").eq("entity_type", "handheld").eq("entity_id", handheldId)
-  if (!poly.error && (poly.data?.length ?? 0) > 0) {
-    const links = normalizeLinks(poly.data!)
-    links.sort(
-      (a, b) =>
-        Number(!!b.is_primary) - Number(!!a.is_primary) ||
-        (a.display_order ?? 9999) - (b.display_order ?? 9999) ||
-        a.name.localeCompare(b.name),
-    )
-    return links
+    console.log("[v0] Found UUID mapping:", data.device_id)
+    return data.device_id
+  } catch (error) {
+    console.error("Error getting handheld UUID:", error)
+    return null
   }
-
-  if (poly.error) console.warn("Links query error:", poly.error)
-  return []
 }
 
 async function getCompatibleTools(handheldId: string): Promise<CompatibleTool[]> {
   try {
+    const supabase = await createClient()
+
+    const deviceUUID = await getHandheldUUID(handheldId)
+    if (!deviceUUID) {
+      console.log("[v0] No device UUID found for handheld ID:", handheldId)
+      return []
+    }
+
     const { data, error } = await supabase
       .from("tool_handheld_compatibility")
       .select(`
@@ -163,23 +152,15 @@ async function getCompatibleTools(handheldId: string): Promise<CompatibleTool[]>
           category,
           image_url
         )
-      `) // Removed developer field since it doesn't exist in tools table
-      .eq("handheld_id", handheldId)
+      `)
+      .eq("device_id", deviceUUID) // Using UUID instead of integer ID
 
     if (error) {
       console.error("Error fetching compatible tools:", error)
       return []
     }
 
-    const mappedData = (data || []).map((item) => ({
-      ...item,
-      tool: {
-        ...item.tool,
-        developer: null, // Set developer to null since tools table doesn't have this field
-      },
-    }))
-
-    return mappedData
+    return data || []
   } catch (error) {
     console.error("Error in getCompatibleTools:", error)
     return []
@@ -188,11 +169,20 @@ async function getCompatibleTools(handheldId: string): Promise<CompatibleTool[]>
 
 async function getCompatibleCustomFirmware(handheldId: string): Promise<CompatibleCustomFirmware[]> {
   try {
+    const supabase = await createClient()
+
+    const deviceUUID = await getHandheldUUID(handheldId)
+    if (!deviceUUID) {
+      console.log("[v0] No device UUID found for handheld ID:", handheldId)
+      return []
+    }
+
     const { data, error } = await supabase
       .from("handheld_custom_firmware")
       .select(`
         id,
-        compatibility_notes,
+        status,
+        install_notes,
         custom_firmware:custom_firmware (
           id,
           name,
@@ -201,7 +191,7 @@ async function getCompatibleCustomFirmware(handheldId: string): Promise<Compatib
           description
         )
       `)
-      .eq("handheld_id", handheldId)
+      .eq("device_id", deviceUUID) // Using UUID instead of integer ID
 
     if (error) {
       console.error("Error fetching compatible custom firmware:", error)
@@ -217,6 +207,14 @@ async function getCompatibleCustomFirmware(handheldId: string): Promise<Compatib
 
 async function getEmulationPerformance(handheldId: string): Promise<EmulationPerformance[]> {
   try {
+    const supabase = await createClient()
+
+    const deviceUUID = await getHandheldUUID(handheldId)
+    if (!deviceUUID) {
+      console.log("[v0] No device UUID found for handheld ID:", handheldId)
+      return []
+    }
+
     const { data, error } = await supabase
       .from("emulation_performance")
       .select(`
@@ -235,7 +233,7 @@ async function getEmulationPerformance(handheldId: string): Promise<EmulationPer
           manufacturer
         )
       `)
-      .eq("handheld_id", handheldId)
+      .eq("device_id", deviceUUID) // Using UUID instead of integer ID
       .order("performance_rating", { ascending: false })
 
     if (error) {
@@ -250,16 +248,6 @@ async function getEmulationPerformance(handheldId: string): Promise<EmulationPer
   }
 }
 
-const linkTypeIcons = {
-  download: () => "📥",
-  official: () => "🔗",
-  documentation: () => "📄",
-  forum: () => "👥",
-  wiki: () => "📄",
-  source: () => "💻",
-  general: () => "🔗",
-}
-
 export default async function HandheldDevicePage({
   params,
 }: {
@@ -271,15 +259,14 @@ export default async function HandheldDevicePage({
     notFound()
   }
 
-  const [links, compatibleTools, compatibleCustomFirmware, emulationPerformance] = await Promise.all([
-    getHandheldLinks(handheld.id),
-    getCompatibleTools(handheld.id),
-    getCompatibleCustomFirmware(handheld.id),
-    getEmulationPerformance(handheld.id),
-  ])
+  const handheldId = handheld.id
+  console.log("[v0] Using handheld ID for compatibility queries:", handheldId)
 
-  const primaryLinks = links.filter((link) => !!link.is_primary)
-  const secondaryLinks = links.filter((link) => !link.is_primary)
+  const [compatibleTools, compatibleCustomFirmware, emulationPerformance] = await Promise.all([
+    getCompatibleTools(handheldId),
+    getCompatibleCustomFirmware(handheldId),
+    getEmulationPerformance(handheldId),
+  ])
 
   const performanceColors = {
     excellent: "bg-green-600 text-white",
@@ -331,8 +318,13 @@ export default async function HandheldDevicePage({
             <div className="lg:w-2/3 space-y-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-4xl font-bold text-white">{handheld.name}</h1>
+                  <h1 className="text-4xl font-bold text-white">{handheld.display_name || handheld.name}</h1>
                   <AddToCompareButton handheldId={handheld.id} label />
+                  {handheld.recommended && (
+                    <Badge variant="default" className="bg-yellow-600 text-white">
+                      ⭐ Recommended
+                    </Badge>
+                  )}
                 </div>
                 {handheld.manufacturer && (
                   <p className="text-xl text-slate-300 flex items-center gap-2">
@@ -340,10 +332,10 @@ export default async function HandheldDevicePage({
                     by {handheld.manufacturer}
                   </p>
                 )}
-                {handheld.release_year && (
+                {handheld.release_date && (
                   <p className="text-lg text-slate-400 flex items-center gap-2">
                     <span>📅</span>
-                    Released in {handheld.release_year}
+                    Released {new Date(handheld.release_date).getFullYear()}
                   </p>
                 )}
               </div>
@@ -357,35 +349,18 @@ export default async function HandheldDevicePage({
                 </div>
               )}
 
-              {/* Key Features */}
-              {handheld.key_features && handheld.key_features.length > 0 && (
+              {/* Features */}
+              {handheld.features && handheld.features.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-400 mb-2">KEY FEATURES</h3>
+                  <h3 className="text-sm font-semibold text-slate-400 mb-2">FEATURES</h3>
                   <div className="flex flex-wrap gap-2">
-                    {handheld.key_features.map((feature, index) => (
+                    {handheld.features.map((feature, index) => (
                       <Badge key={index} variant="outline" className="border-slate-600 text-slate-300">
                         <span className="mr-1">⚡</span>
                         {feature}
                       </Badge>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Primary Links */}
-              {primaryLinks.length > 0 && (
-                <div className="flex flex-wrap gap-3">
-                  {primaryLinks.map((link) => {
-                    const iconEmoji = linkTypeIcons[link.link_type as keyof typeof linkTypeIcons]?.() || "🔗"
-                    return (
-                      <Button key={link.id} asChild className="bg-purple-600 hover:bg-purple-700 text-white">
-                        <a href={link.url} target="_blank" rel="noopener noreferrer">
-                          <span className="mr-2">{iconEmoji}</span>
-                          {link.name}
-                        </a>
-                      </Button>
-                    )
-                  })}
                 </div>
               )}
             </div>
@@ -426,12 +401,21 @@ export default async function HandheldDevicePage({
                       </div>
                     </div>
                   )}
-                  {handheld.cpu && (
+                  {handheld.processor && (
                     <div className="flex items-center gap-3">
                       <span className="text-slate-400">💻</span>
                       <div>
                         <div className="text-sm text-slate-400">Processor</div>
-                        <div className="text-white font-medium">{handheld.cpu}</div>
+                        <div className="text-white font-medium">{handheld.processor}</div>
+                      </div>
+                    </div>
+                  )}
+                  {handheld.resolution && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-slate-400">🖥️</span>
+                      <div>
+                        <div className="text-sm text-slate-400">Resolution</div>
+                        <div className="text-white font-medium">{handheld.resolution}</div>
                       </div>
                     </div>
                   )}
@@ -444,12 +428,12 @@ export default async function HandheldDevicePage({
                       </div>
                     </div>
                   )}
-                  {handheld.internal_storage && (
+                  {handheld.storage && (
                     <div className="flex items-center gap-3">
                       <span className="text-slate-400">💽</span>
                       <div>
                         <div className="text-sm text-slate-400">Storage</div>
-                        <div className="text-white font-medium">{handheld.internal_storage}</div>
+                        <div className="text-white font-medium">{handheld.storage}</div>
                       </div>
                     </div>
                   )}
@@ -613,9 +597,6 @@ export default async function HandheldDevicePage({
                           )}
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-white truncate">{compat.tool.name}</h4>
-                            {compat.tool.developer && (
-                              <p className="text-sm text-slate-400">by {compat.tool.developer}</p>
-                            )}
                             {compat.tool.category && (
                               <div className="flex flex-wrap gap-1 mt-1">
                                 <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
@@ -658,8 +639,9 @@ export default async function HandheldDevicePage({
                             {compat.custom_firmware.description && (
                               <p className="text-sm text-slate-300 mt-1">{compat.custom_firmware.description}</p>
                             )}
-                            {compat.compatibility_notes && (
-                              <p className="text-xs text-slate-500 mt-2 italic">{compat.compatibility_notes}</p>
+                            {compat.status && <p className="text-xs text-slate-500 mt-2 italic">{compat.status}</p>}
+                            {compat.install_notes && (
+                              <p className="text-xs text-slate-500 mt-2 italic">{compat.install_notes}</p>
                             )}
                           </div>
                           <span className="ml-2 flex-shrink-0">🔗</span>
@@ -667,6 +649,29 @@ export default async function HandheldDevicePage({
                       </Link>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Official Website */}
+            {handheld.official_website && (
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <span>🌐</span>
+                    Official Website
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <a
+                    href={handheld.official_website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-2"
+                  >
+                    {handheld.official_website}
+                    <span>↗️</span>
+                  </a>
                 </CardContent>
               </Card>
             )}
@@ -684,10 +689,10 @@ export default async function HandheldDevicePage({
                   <span className="text-slate-400">Manufacturer:</span>
                   <span className="text-white">{handheld.manufacturer || "Unknown"}</span>
                 </div>
-                {handheld.release_year && (
+                {handheld.release_date && (
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Release Year:</span>
-                    <span className="text-white">{handheld.release_year}</span>
+                    <span className="text-slate-400">Release Date:</span>
+                    <span className="text-white">{new Date(handheld.release_date).getFullYear()}</span>
                   </div>
                 )}
                 {handheld.price_range && (
@@ -708,15 +713,6 @@ export default async function HandheldDevicePage({
                   <span className="text-slate-400">Emulation Tests:</span>
                   <span className="text-white">{emulationPerformance.length}</span>
                 </div>
-                {emulationPerformance.length > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Best Performance:</span>
-                    <span className="text-white flex items-center gap-1">
-                      {getPerformanceIcon(emulationPerformance[0].performance_rating)}
-                      <span className="capitalize">{emulationPerformance[0].performance_rating}</span>
-                    </span>
-                  </div>
-                )}
                 <Separator className="bg-slate-600" />
                 <div className="flex justify-between">
                   <span className="text-slate-400">Added:</span>
@@ -727,40 +723,6 @@ export default async function HandheldDevicePage({
                 </div>
               </CardContent>
             </Card>
-
-            {/* Additional Links */}
-            {secondaryLinks.length > 0 && (
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white text-lg">Links & Resources</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {secondaryLinks.map((link) => {
-                      const iconEmoji = linkTypeIcons[link.link_type as keyof typeof linkTypeIcons]?.() || "🔗"
-                      return (
-                        <a
-                          key={link.id}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-3 p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors group"
-                        >
-                          <span className="text-slate-400 group-hover:text-white">{iconEmoji}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-white group-hover:text-purple-300">{link.name}</div>
-                            {link.description && (
-                              <div className="text-sm text-slate-400 truncate">{link.description}</div>
-                            )}
-                          </div>
-                          <span className="text-slate-500 group-hover:text-slate-300">🔗</span>
-                        </a>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </div>

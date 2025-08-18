@@ -84,27 +84,54 @@ async function getToolLinks(toolId: string): Promise<ToolLink[]> {
 
 async function getCompatibleHandhelds(toolId: string): Promise<CompatibleHandheld[]> {
   try {
-    const { data, error } = await supabase
+    const { data: compatibilityData, error: compatError } = await supabase
       .from("tool_handheld_compatibility")
-      .select(`
-        id,
-        compatibility_notes,
-        handheld:handhelds (
-          id,
-          name,
-          slug,
-          manufacturer,
-          image_url
-        )
-      `)
+      .select("id, compatibility_notes, handheld_id, device_id")
       .eq("tool_id", toolId)
 
-    if (error) {
-      console.error("Error fetching compatible handhelds:", error)
+    if (compatError) {
+      console.error("Error fetching tool compatibility:", compatError)
       return []
     }
 
-    return data || []
+    if (!compatibilityData || compatibilityData.length === 0) {
+      return []
+    }
+
+    const handheldIds = compatibilityData.map((comp) => comp.handheld_id).filter(Boolean)
+
+    if (handheldIds.length === 0) {
+      return []
+    }
+
+    const { data: handheldsData, error: handheldsError } = await supabase
+      .from("handhelds")
+      .select("id, name, slug, manufacturer, image_url")
+      .in("id", handheldIds)
+
+    if (handheldsError) {
+      console.error("Error fetching handhelds:", handheldsError)
+      return []
+    }
+
+    const result: CompatibleHandheld[] = compatibilityData
+      .map((comp) => {
+        const handheld = handheldsData?.find((h) => h.id === comp.handheld_id)
+        return {
+          id: comp.id,
+          compatibility_notes: comp.compatibility_notes,
+          handheld: handheld || {
+            id: comp.handheld_id?.toString() || "",
+            name: "Unknown Device",
+            slug: "unknown",
+            manufacturer: null,
+            image_url: null,
+          },
+        }
+      })
+      .filter((item) => item.handheld.name !== "Unknown Device")
+
+    return result
   } catch (error) {
     console.error("Error in getCompatibleHandhelds:", error)
     return []

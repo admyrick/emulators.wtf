@@ -71,27 +71,47 @@ async function getCompatibleGames(emulatorId: string) {
 
 async function getCompatibleHandhelds(emulatorId: string) {
   try {
-    const { data, error } = await supabase
+    const { data: compatibilityData, error: compatError } = await supabase
       .from("emulator_handheld_compatibility")
-      .select(`
-        id,
-        compatibility_notes,
-        handheld:handhelds (
-          id,
-          name,
-          slug,
-          manufacturer,
-          image_url
-        )
-      `)
+      .select("id, notes, handheld_id")
       .eq("emulator_id", emulatorId)
 
-    if (error) {
-      console.error("Error fetching compatible handhelds:", error)
+    if (compatError) {
+      console.error("Error fetching compatibility data:", compatError)
       return []
     }
 
-    return data || []
+    if (!compatibilityData || compatibilityData.length === 0) {
+      return []
+    }
+
+    // Get unique handheld IDs
+    const handheldIds = [...new Set(compatibilityData.map((item) => item.handheld_id))]
+
+    // Fetch handheld details
+    const { data: handheldsData, error: handheldsError } = await supabase
+      .from("handhelds")
+      .select("id, name, slug, manufacturer, image_url")
+      .in("id", handheldIds)
+
+    if (handheldsError) {
+      console.error("Error fetching handhelds data:", handheldsError)
+      return []
+    }
+
+    // Combine compatibility data with handheld details
+    const result = compatibilityData
+      .map((compat) => {
+        const handheld = handheldsData?.find((h) => h.id === compat.handheld_id)
+        return {
+          id: compat.id,
+          notes: compat.notes,
+          handheld: handheld || null,
+        }
+      })
+      .filter((item) => item.handheld !== null)
+
+    return result
   } catch (error) {
     console.error("Error in getCompatibleHandhelds:", error)
     return []
@@ -359,7 +379,10 @@ export default function EmulatorPage({ params }: { params: { slug: string } }) {
                           <Image
                             src={
                               compat.handheld.image_url ||
-                              "/placeholder.svg?height=48&width=48&query=handheld gaming device"
+                              "/placeholder.svg?height=48&width=48&query=handheld gaming device" ||
+                              "/placeholder.svg" ||
+                              "/placeholder.svg" ||
+                              "/placeholder.svg"
                             }
                             alt={compat.handheld.name}
                             fill
@@ -371,10 +394,8 @@ export default function EmulatorPage({ params }: { params: { slug: string } }) {
                             {compat.handheld.name}
                           </h3>
                           <p className="text-sm text-muted-foreground">{compat.handheld.manufacturer}</p>
-                          {compat.compatibility_notes && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                              {compat.compatibility_notes}
-                            </p>
+                          {compat.notes && (
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{compat.notes}</p>
                           )}
                         </div>
                       </div>

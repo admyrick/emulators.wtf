@@ -15,12 +15,9 @@ interface Tool {
   name: string
   slug: string
   description: string | null
-  developer: string | null
   category: string | null
   supported_platforms: string[] | null
   features: string[] | null
-  requirements: string | null
-  price: string | null
   image_url: string | null
   download_url: string | null
   official_website: string | null
@@ -36,12 +33,9 @@ export function EditToolForm({ tool, onSuccess }: EditToolFormProps) {
     name: tool.name || "",
     slug: tool.slug || "",
     description: tool.description || "",
-    developer: tool.developer || "",
     category: tool.category || "",
     supported_platforms: tool.supported_platforms?.join(", ") || "",
     features: tool.features?.join(", ") || "",
-    requirements: tool.requirements || "",
-    price: tool.price || "",
     image_url: tool.image_url || "",
     download_url: tool.download_url || "",
     official_website: tool.official_website || "",
@@ -57,7 +51,6 @@ export function EditToolForm({ tool, onSuccess }: EditToolFormProps) {
         name: formData.name,
         slug: formData.slug,
         description: formData.description || null,
-        developer: formData.developer || null,
         category: formData.category || null,
         supported_platforms: formData.supported_platforms
           ? formData.supported_platforms
@@ -71,8 +64,6 @@ export function EditToolForm({ tool, onSuccess }: EditToolFormProps) {
               .map((f) => f.trim())
               .filter(Boolean)
           : null,
-        requirements: formData.requirements || null,
-        price: formData.price || null,
         image_url: formData.image_url || null,
         download_url: formData.download_url || null,
         official_website: formData.official_website || null,
@@ -125,24 +116,14 @@ export function EditToolForm({ tool, onSuccess }: EditToolFormProps) {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="developer">Developer</Label>
-          <Input
-            id="developer"
-            value={formData.developer}
-            onChange={(e) => setFormData({ ...formData, developer: e.target.value })}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="price">Price</Label>
-          <Input
-            id="price"
-            value={formData.price}
-            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-            placeholder="Free, $19.99, etc."
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="category">Category</Label>
+        <Input
+          id="category"
+          value={formData.category}
+          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+          placeholder="ROM Management, Save States, Cheats"
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -177,16 +158,6 @@ export function EditToolForm({ tool, onSuccess }: EditToolFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="category">Categories (comma-separated)</Label>
-        <Input
-          id="category"
-          value={formData.category}
-          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-          placeholder="ROM Management, Save States, Cheats"
-        />
-      </div>
-
-      <div className="space-y-2">
         <Label htmlFor="supported_platforms">Supported Platforms (comma-separated)</Label>
         <Input
           id="supported_platforms"
@@ -203,17 +174,6 @@ export function EditToolForm({ tool, onSuccess }: EditToolFormProps) {
           value={formData.features}
           onChange={(e) => setFormData({ ...formData, features: e.target.value })}
           placeholder="Batch Processing, GUI Interface, Command Line"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="requirements">System Requirements</Label>
-        <Textarea
-          id="requirements"
-          value={formData.requirements}
-          onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
-          rows={2}
-          placeholder="4GB RAM, DirectX 11"
         />
       </div>
 

@@ -8,12 +8,12 @@ interface Preset {
   id: string
   name: string
   description: string
-  handheld_id: number | null
+  device_id: string | null
   created_by: string
   download_count: number
   is_public: boolean
   created_at: string
-  handhelds?: {
+  device?: {
     name: string
   }
 }
@@ -29,16 +29,49 @@ export default function AdminPresetsPage() {
 
   async function fetchPresets() {
     try {
-      const { data, error } = await supabase
+      const { data: presetsData, error: presetsError } = await supabase
         .from("presets")
-        .select(`
-          *,
-          handhelds(name)
-        `)
+        .select("*")
         .order("created_at", { ascending: false })
 
-      if (error) throw error
-      setPresets(data || [])
+      if (presetsError) throw presetsError
+
+      const presetsWithDevices = await Promise.all(
+        (presetsData || []).map(async (preset) => {
+          if (preset.device_id) {
+            const { data: deviceData } = await supabase
+              .from("devices_unified")
+              .select("name")
+              .eq("id", preset.device_id)
+              .single()
+
+            if (deviceData) {
+              return { ...preset, device: { name: deviceData.name } }
+            }
+
+            const { data: mappingData } = await supabase
+              .from("handheld_uuid_map")
+              .select("handheld_id")
+              .eq("device_id", preset.device_id)
+              .single()
+
+            if (mappingData) {
+              const { data: handheldData } = await supabase
+                .from("handhelds")
+                .select("name")
+                .eq("id", mappingData.handheld_id)
+                .single()
+
+              if (handheldData) {
+                return { ...preset, device: { name: handheldData.name } }
+              }
+            }
+          }
+          return preset
+        }),
+      )
+
+      setPresets(presetsWithDevices)
     } catch (error) {
       console.error("Error fetching presets:", error)
     } finally {
@@ -138,7 +171,7 @@ export default function AdminPresetsPage() {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Downloads</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {presets.reduce((sum, p) => sum + p.download_count, 0)}
+                {presets.reduce((sum, p) => sum + (Number(p.download_count) || 0), 0)}
               </p>
             </div>
             <div className="text-3xl">⬇️</div>
@@ -215,10 +248,12 @@ export default function AdminPresetsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                      {preset.handhelds?.name || "Any Device"}
+                      {preset.device?.name || "Any Device"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{preset.created_by}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{preset.download_count}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                      {Number(preset.download_count) || 0}
+                    </td>
                     <td className="px-6 py-4">
                       <button
                         onClick={() => togglePublic(preset.id, preset.is_public)}

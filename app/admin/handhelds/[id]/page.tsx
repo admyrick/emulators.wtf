@@ -88,9 +88,30 @@ export default function HandheldDetailPage({ params }: { params: { id: string } 
                   <div>
                     <strong>Name:</strong> {handheld.name}
                   </div>
+                  {handheld.display_name && handheld.display_name !== handheld.name && (
+                    <div>
+                      <strong>Display Name:</strong> {handheld.display_name}
+                    </div>
+                  )}
                   {handheld.manufacturer && (
                     <div>
                       <strong>Manufacturer:</strong> <Badge variant="secondary">{handheld.manufacturer}</Badge>
+                    </div>
+                  )}
+                  <div>
+                    <strong>Recommended:</strong>
+                    <Badge variant={handheld.recommended ? "default" : "secondary"} className="ml-2">
+                      {handheld.recommended ? "Yes" : "No"}
+                    </Badge>
+                  </div>
+                  {handheld.price_range && (
+                    <div>
+                      <strong>Price Range:</strong> {handheld.price_range}
+                    </div>
+                  )}
+                  {handheld.release_date && (
+                    <div>
+                      <strong>Release Date:</strong> {new Date(handheld.release_date).toLocaleDateString()}
                     </div>
                   )}
                   {handheld.operating_system && (
@@ -118,6 +139,39 @@ export default function HandheldDetailPage({ params }: { params: { id: string } 
                       <strong>Screen Size:</strong> {handheld.screen_size}
                     </div>
                   )}
+                  {handheld.resolution && (
+                    <div>
+                      <strong>Resolution:</strong> {handheld.resolution}
+                    </div>
+                  )}
+                  {handheld.battery_life && (
+                    <div>
+                      <strong>Battery Life:</strong> {handheld.battery_life}
+                    </div>
+                  )}
+                  {handheld.weight && (
+                    <div>
+                      <strong>Weight:</strong> {handheld.weight}
+                    </div>
+                  )}
+                  {handheld.dimensions && (
+                    <div>
+                      <strong>Dimensions:</strong> {handheld.dimensions}
+                    </div>
+                  )}
+                  {handheld.official_website && (
+                    <div>
+                      <strong>Official Website:</strong>
+                      <a
+                        href={handheld.official_website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline ml-2"
+                      >
+                        {handheld.official_website}
+                      </a>
+                    </div>
+                  )}
                   {handheld.connectivity && handheld.connectivity.length > 0 && (
                     <div>
                       <strong>Connectivity:</strong>
@@ -139,6 +193,26 @@ export default function HandheldDetailPage({ params }: { params: { id: string } 
                             {format}
                           </Badge>
                         ))}
+                      </div>
+                    </div>
+                  )}
+                  {handheld.features && handheld.features.length > 0 && (
+                    <div>
+                      <strong>Features:</strong>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {handheld.features.map((feature, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {feature}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {handheld.specifications && Object.keys(handheld.specifications).length > 0 && (
+                    <div>
+                      <strong>Specifications:</strong>
+                      <div className="mt-1 text-sm bg-muted p-2 rounded">
+                        <pre>{JSON.stringify(handheld.specifications, null, 2)}</pre>
                       </div>
                     </div>
                   )}
