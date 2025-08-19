@@ -1,92 +1,100 @@
+"use client"
+
 // NewCustomFirmwareForm.tsx - Example form component
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createCustomFirmware, generateSlug, validateCustomFirmwareInput, type CustomFirmwareInput } from './cfw-actions'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
-import { X, Plus } from 'lucide-react'
+import type React from "react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import {
+  createCustomFirmware,
+  generateSlug,
+  validateCustomFirmwareInput,
+  type CustomFirmwareInput,
+} from "./cfw-actions"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
+import { X, Plus } from "lucide-react"
 
 export default function NewCustomFirmwareForm() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  
+
   // Form state
   const [formData, setFormData] = useState<CustomFirmwareInput>({
-    name: '',
-    slug: '',
-    description: '',
-    version: '',
+    name: "",
+    slug: "",
+    description: "",
+    version: "",
     compatibility: [],
     features: [],
     supported_devices: [],
-    installation_guide: '',
-    download_url: '',
-    official_website: '',
+    installation_guide: "",
+    download_url: "",
+    official_website: "",
     is_active: true,
-    release_date: '',
-    changelog: '',
+    release_date: "",
+    changelog: "",
     requirements: [],
     tags: [],
-    image_url: ''
+    image_url: "",
   })
 
   // State for array inputs
-  const [compatibilityInput, setCompatibilityInput] = useState('')
-  const [featureInput, setFeatureInput] = useState('')
-  const [deviceInput, setDeviceInput] = useState('')
-  const [requirementInput, setRequirementInput] = useState('')
-  const [tagInput, setTagInput] = useState('')
+  const [compatibilityInput, setCompatibilityInput] = useState("")
+  const [featureInput, setFeatureInput] = useState("")
+  const [deviceInput, setDeviceInput] = useState("")
+  const [requirementInput, setRequirementInput] = useState("")
+  const [tagInput, setTagInput] = useState("")
 
   // Handle basic input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }))
 
     // Auto-generate slug from name
-    if (name === 'name') {
-      setFormData(prev => ({
+    if (name === "name") {
+      setFormData((prev) => ({
         ...prev,
-        slug: generateSlug(value)
+        slug: generateSlug(value),
       }))
     }
   }
 
   // Handle switch change
   const handleSwitchChange = (checked: boolean) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      is_active: checked
+      is_active: checked,
     }))
   }
 
   // Add item to array field
   const addToArray = (field: keyof CustomFirmwareInput, value: string, setInput: (value: string) => void) => {
     if (value.trim()) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [field]: [...(prev[field] as string[] || []), value.trim()]
+        [field]: [...((prev[field] as string[]) || []), value.trim()],
       }))
-      setInput('')
+      setInput("")
     }
   }
 
   // Remove item from array field
   const removeFromArray = (field: keyof CustomFirmwareInput, index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: (prev[field] as string[] || []).filter((_, i) => i !== index)
+      [field]: ((prev[field] as string[]) || []).filter((_, i) => i !== index),
     }))
   }
 
@@ -99,7 +107,7 @@ export default function NewCustomFirmwareForm() {
     // Validate input
     const validation = validateCustomFirmwareInput(formData)
     if (!validation.valid) {
-      setError(validation.errors.join(', '))
+      setError(validation.errors.join(", "))
       return
     }
 
@@ -107,19 +115,19 @@ export default function NewCustomFirmwareForm() {
 
     try {
       const { data, error } = await createCustomFirmware(formData)
-      
+
       if (error) {
-        setError(error.message || 'Failed to create custom firmware')
+        setError(error.message || "Failed to create custom firmware")
       } else {
         setSuccess(true)
         // Redirect after a short delay
         setTimeout(() => {
-          router.push('/admin/custom-firmware')
+          router.push("/admin/custom-firmware")
         }, 1500)
       }
     } catch (err) {
-      setError('An unexpected error occurred')
-      console.error('Form submission error:', err)
+      setError("An unexpected error occurred")
+      console.error("Form submission error:", err)
     } finally {
       setLoading(false)
     }
@@ -145,7 +153,7 @@ export default function NewCustomFirmwareForm() {
                 placeholder="e.g., ArkOS"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="slug">Slug *</Label>
               <Input
@@ -243,15 +251,15 @@ export default function NewCustomFirmwareForm() {
                 onChange={(e) => setCompatibilityInput(e.target.value)}
                 placeholder="e.g., RG351P"
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     e.preventDefault()
-                    addToArray('compatibility', compatibilityInput, setCompatibilityInput)
+                    addToArray("compatibility", compatibilityInput, setCompatibilityInput)
                   }
                 }}
               />
               <Button
                 type="button"
-                onClick={() => addToArray('compatibility', compatibilityInput, setCompatibilityInput)}
+                onClick={() => addToArray("compatibility", compatibilityInput, setCompatibilityInput)}
                 size="sm"
               >
                 <Plus className="w-4 h-4" />
@@ -261,11 +269,7 @@ export default function NewCustomFirmwareForm() {
               {(formData.compatibility as string[])?.map((item, index) => (
                 <Badge key={index} variant="secondary">
                   {item}
-                  <button
-                    type="button"
-                    onClick={() => removeFromArray('compatibility', index)}
-                    className="ml-2"
-                  >
+                  <button type="button" onClick={() => removeFromArray("compatibility", index)} className="ml-2">
                     <X className="w-3 h-3" />
                   </button>
                 </Badge>
@@ -282,17 +286,13 @@ export default function NewCustomFirmwareForm() {
                 onChange={(e) => setFeatureInput(e.target.value)}
                 placeholder="e.g., RetroArch Integration"
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     e.preventDefault()
-                    addToArray('features', featureInput, setFeatureInput)
+                    addToArray("features", featureInput, setFeatureInput)
                   }
                 }}
               />
-              <Button
-                type="button"
-                onClick={() => addToArray('features', featureInput, setFeatureInput)}
-                size="sm"
-              >
+              <Button type="button" onClick={() => addToArray("features", featureInput, setFeatureInput)} size="sm">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
@@ -300,11 +300,7 @@ export default function NewCustomFirmwareForm() {
               {(formData.features as string[])?.map((item, index) => (
                 <Badge key={index} variant="secondary">
                   {item}
-                  <button
-                    type="button"
-                    onClick={() => removeFromArray('features', index)}
-                    className="ml-2"
-                  >
+                  <button type="button" onClick={() => removeFromArray("features", index)} className="ml-2">
                     <X className="w-3 h-3" />
                   </button>
                 </Badge>
@@ -321,17 +317,13 @@ export default function NewCustomFirmwareForm() {
                 onChange={(e) => setTagInput(e.target.value)}
                 placeholder="e.g., linux, retro-gaming"
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     e.preventDefault()
-                    addToArray('tags', tagInput, setTagInput)
+                    addToArray("tags", tagInput, setTagInput)
                   }
                 }}
               />
-              <Button
-                type="button"
-                onClick={() => addToArray('tags', tagInput, setTagInput)}
-                size="sm"
-              >
+              <Button type="button" onClick={() => addToArray("tags", tagInput, setTagInput)} size="sm">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
@@ -339,11 +331,7 @@ export default function NewCustomFirmwareForm() {
               {(formData.tags as string[])?.map((item, index) => (
                 <Badge key={index} variant="outline">
                   {item}
-                  <button
-                    type="button"
-                    onClick={() => removeFromArray('tags', index)}
-                    className="ml-2"
-                  >
+                  <button type="button" onClick={() => removeFromArray("tags", index)} className="ml-2">
                     <X className="w-3 h-3" />
                   </button>
                 </Badge>
@@ -379,11 +367,7 @@ export default function NewCustomFirmwareForm() {
 
           {/* Active Status */}
           <div className="flex items-center space-x-2">
-            <Switch
-              id="is_active"
-              checked={formData.is_active}
-              onCheckedChange={handleSwitchChange}
-            />
+            <Switch id="is_active" checked={formData.is_active} onCheckedChange={handleSwitchChange} />
             <Label htmlFor="is_active">Active</Label>
           </div>
 
@@ -393,7 +377,7 @@ export default function NewCustomFirmwareForm() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          
+
           {success && (
             <Alert>
               <AlertDescription>Custom firmware created successfully! Redirecting...</AlertDescription>
@@ -403,13 +387,9 @@ export default function NewCustomFirmwareForm() {
           {/* Submit Buttons */}
           <div className="flex gap-4">
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Custom Firmware'}
+              {loading ? "Creating..." : "Create Custom Firmware"}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push('/admin/custom-firmware')}
-            >
+            <Button type="button" variant="outline" onClick={() => router.push("/admin/custom-firmware")}>
               Cancel
             </Button>
           </div>
