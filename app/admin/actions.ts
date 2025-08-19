@@ -56,24 +56,27 @@ export async function updateConsole(id: string, formData: FormData) {
 
     const name = formData.get("name") as string
     const manufacturer = formData.get("manufacturer") as string
-    const release_date = formData.get("release_date") as string
+    const release_year = formData.get("release_year") as string
     const description = formData.get("description") as string
     const image_url = formData.get("image_url") as string
+    const slug = formData.get("slug") as string
 
     if (!name?.trim()) {
-      throw new Error("Console name is required")
+      return { success: false, error: "Console name is required" }
     }
 
-    const slug = name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
+    const finalSlug =
+      slug?.trim() ||
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
 
     const consoleData = {
       name: name.trim(),
-      slug,
+      slug: finalSlug,
       manufacturer: manufacturer?.trim() || null,
-      release_date: release_date || null,
+      release_year: release_year ? Number.parseInt(release_year, 10) : null,
       description: description?.trim() || null,
       image_url: image_url?.trim() || null,
       updated_at: new Date().toISOString(),
@@ -81,20 +84,26 @@ export async function updateConsole(id: string, formData: FormData) {
 
     console.log("Updating console data:", consoleData)
 
-    const { data, error } = await supabase.from("consoles").update(consoleData).eq("id", id).select().single()
+    const { data, error } = await supabase.from("consoles").update(consoleData).eq("id", id).select()
 
     if (error) {
       console.error("Database error updating console:", error)
-      throw new Error(`Failed to update console: ${error.message}`)
+      return { success: false, error: error.message }
     }
 
-    console.log("Console updated successfully:", data)
+    if (!data || data.length === 0) {
+      console.error("No console found with ID:", id)
+      return { success: false, error: "Console not found" }
+    }
+
+    const updatedConsole = data[0]
+    console.log("Console updated successfully:", updatedConsole)
     revalidatePath("/admin/consoles")
     revalidatePath(`/admin/consoles/${id}`)
-    return { success: true, data }
-  } catch (error) {
+    return { success: true, data: updatedConsole }
+  } catch (error: any) {
     console.error("Error in updateConsole:", error)
-    throw error
+    return { success: false, error: error.message || "Failed to update console" }
   }
 }
 

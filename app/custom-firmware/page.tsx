@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -17,8 +19,12 @@ interface CustomFirmware {
   version: string | null
   release_date: string | null
   download_url: string | null
-  documentation_url: string | null
-  source_code_url: string | null
+  image_url: string | null
+  docs_url: string | null
+  repo_url: string | null
+  website: string | null
+  official_website: string | null
+  installation_guide_url: string | null
   license: string | null
   installation_difficulty: string | null
   features: string[] | null
@@ -61,12 +67,29 @@ function CustomFirmwareCard({ firmware }: { firmware: CustomFirmware }) {
     }
   }
 
+  const handleLinkClick = (e: React.MouseEvent, url: string) => {
+    e.stopPropagation()
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
+
   return (
     <Link href={`/custom-firmware/${firmware.slug}`}>
       <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer h-full bg-slate-850 border-slate-700">
         <CardHeader className="pb-3">
           <div className="aspect-video relative mb-3 overflow-hidden rounded-md bg-slate-800 flex items-center justify-center">
-            <div className="text-4xl">⚙️</div>
+            {firmware.image_url ? (
+              <img
+                src={firmware.image_url || "/placeholder.svg"}
+                alt={firmware.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = "none"
+                  target.nextElementSibling?.classList.remove("hidden")
+                }}
+              />
+            ) : null}
+            <div className={`text-4xl ${firmware.image_url ? "hidden" : ""}`}>⚙️</div>
           </div>
           <CardTitle className="text-lg line-clamp-2 group-hover:text-purple-400 transition-colors text-white">
             {firmware.name}
@@ -89,6 +112,55 @@ function CustomFirmwareCard({ firmware }: { firmware: CustomFirmware }) {
             </Badge>
           </div>
           {firmware.description && <p className="text-sm text-slate-300 line-clamp-3 mb-3">{firmware.description}</p>}
+          {(firmware.download_url ||
+            firmware.docs_url ||
+            firmware.repo_url ||
+            firmware.website ||
+            firmware.official_website ||
+            firmware.installation_guide_url) && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {firmware.download_url && (
+                <button
+                  onClick={(e) => handleLinkClick(e, firmware.download_url!)}
+                  className="text-xs text-blue-400 hover:text-blue-300 underline bg-transparent border-none cursor-pointer p-0"
+                >
+                  Download
+                </button>
+              )}
+              {firmware.docs_url && (
+                <button
+                  onClick={(e) => handleLinkClick(e, firmware.docs_url!)}
+                  className="text-xs text-green-400 hover:text-green-300 underline bg-transparent border-none cursor-pointer p-0"
+                >
+                  Docs
+                </button>
+              )}
+              {firmware.repo_url && (
+                <button
+                  onClick={(e) => handleLinkClick(e, firmware.repo_url!)}
+                  className="text-xs text-orange-400 hover:text-orange-300 underline bg-transparent border-none cursor-pointer p-0"
+                >
+                  Source
+                </button>
+              )}
+              {firmware.installation_guide_url && (
+                <button
+                  onClick={(e) => handleLinkClick(e, firmware.installation_guide_url!)}
+                  className="text-xs text-purple-400 hover:text-purple-300 underline bg-transparent border-none cursor-pointer p-0"
+                >
+                  Install Guide
+                </button>
+              )}
+              {(firmware.website || firmware.official_website) && (
+                <button
+                  onClick={(e) => handleLinkClick(e, firmware.website || firmware.official_website!)}
+                  className="text-xs text-cyan-400 hover:text-cyan-300 underline bg-transparent border-none cursor-pointer p-0"
+                >
+                  Website
+                </button>
+              )}
+            </div>
+          )}
           {firmware.features && firmware.features.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">
               {(Array.isArray(firmware.features) ? firmware.features : []).slice(0, 2).map((feature, index) => (

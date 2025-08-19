@@ -104,6 +104,9 @@ async function getSetupComponents(setupId: string): Promise<SetupComponent[]> {
       return {
         ...component,
         component_name: componentName,
+        // Aliases so downstream UI can use a consistent shape
+        name: componentName,
+        title: componentName,
       }
     }),
   )

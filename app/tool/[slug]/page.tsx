@@ -86,7 +86,7 @@ async function getCompatibleHandhelds(toolId: string): Promise<CompatibleHandhel
   try {
     const { data: compatibilityData, error: compatError } = await supabase
       .from("tool_handheld_compatibility")
-      .select("id, compatibility_notes, handheld_id, device_id")
+      .select("id, compatibility_notes, handheld_id:device_id")
       .eq("tool_id", toolId)
 
     if (compatError) {

@@ -1,279 +1,307 @@
-"use server"
+// cfw-actions.ts - Custom Firmware database actions
 
-import { supabaseAdmin } from "@/lib/supabase-admin"
-import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
+import { supabase } from "@/lib/supabase"
 
-async function generateUniqueSlug(baseName: string, customSlug?: string): Promise<string> {
-  const slug =
-    customSlug ||
-    baseName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
+// Define the CustomFirmware type with all fields
+export interface CustomFirmware {
+  id: number
+  name: string
+  slug: string
+  description?: string
+  version?: string
+  compatibility?: string[] | any  // Can be JSONB array or structured data
+  features?: string[] | any
+  supported_devices?: string[] | any
+  installation_guide?: string
+  download_url?: string
+  official_website?: string
+  is_active?: boolean
+  release_date?: string
+  changelog?: string
+  requirements?: string[] | any
+  tags?: string[]
+  image_url?: string
+  created_at?: string
+  updated_at?: string
+}
 
-  // Check if slug exists
-  const { data: existing } = await supabaseAdmin.from("custom_firmware").select("slug").eq("slug", slug).single()
+// Input type for creating/updating custom firmware
+export interface CustomFirmwareInput {
+  name: string
+  slug: string
+  description?: string
+  version?: string
+  compatibility?: string[] | any
+  features?: string[] | any
+  supported_devices?: string[] | any
+  installation_guide?: string
+  download_url?: string
+  official_website?: string
+  is_active?: boolean
+  release_date?: string
+  changelog?: string
+  requirements?: string[] | any
+  tags?: string[]
+  image_url?: string
+}
 
-  if (!existing) {
-    return slug // Slug is unique
-  }
+// Create a new custom firmware entry
+export async function createCustomFirmware(input: CustomFirmwareInput) {
+  try {
+    // Ensure compatibility is properly formatted for JSONB
+    const formattedInput = {
+      ...input,
+      compatibility: input.compatibility || [],
+      features: input.features || [],
+      supported_devices: input.supported_devices || [],
+      requirements: input.requirements || [],
+      tags: input.tags || [],
+      is_active: input.is_active !== undefined ? input.is_active : true
+    }
 
-  // If slug exists, append numbers until we find a unique one
-  let counter = 1
-  let uniqueSlug = `${slug}-${counter}`
-
-  while (true) {
-    const { data: existingNumbered } = await supabaseAdmin
-      .from("custom_firmware")
-      .select("slug")
-      .eq("slug", uniqueSlug)
+    const { data, error } = await supabase
+      .from('custom_firmware')
+      .insert(formattedInput)
+      .select()
       .single()
 
-    if (!existingNumbered) {
-      return uniqueSlug // Found unique slug
+    if (error) {
+      console.error('Error creating custom firmware:', error)
+      throw error
     }
 
-    counter++
-    uniqueSlug = `${slug}-${counter}`
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error in createCustomFirmware:', error)
+    return { data: null, error }
   }
 }
 
-export async function createCustomFirmware(formData: FormData) {
+// Update an existing custom firmware entry
+export async function updateCustomFirmware(id: number, input: Partial<CustomFirmwareInput>) {
   try {
-    console.log("Creating custom firmware with data:", Object.fromEntries(formData.entries()))
-
-    const supabase = supabaseAdmin
-    const name = formData.get("name") as string
-    const description = formData.get("description") as string
-    const version = formData.get("version") as string
-    const release_date = formData.get("release_date") as string
-    const customSlug = formData.get("slug") as string
-
-    const slug = await generateUniqueSlug(name, customSlug)
-
-    const download_url = formData.get("download_url") as string
-    const documentation_url = formData.get("documentation_url") as string
-    const source_code_url = formData.get("source_code_url") as string
-    const license = formData.get("license") as string
-    const installation_difficulty = formData.get("installation_difficulty") as string
-    const image_url = formData.get("image_url") as string
-
-    // Parse features and requirements
-    let features: string[] = []
-    let requirements: string[] = []
-
-    try {
-      const featuresStr = formData.get("features") as string
-      const requirementsStr = formData.get("requirements") as string
-
-      if (featuresStr) {
-        features = JSON.parse(featuresStr)
-      }
-      if (requirementsStr) {
-        requirements = JSON.parse(requirementsStr)
-      }
-    } catch (parseError) {
-      console.error("Error parsing features/requirements:", parseError)
-    }
-
-    let compatibility: string[] = []
-    try {
-      const compatibilityStr = formData.get("compatibility") as string
-      if (compatibilityStr) {
-        compatibility = JSON.parse(compatibilityStr)
-      }
-    } catch (parseError) {
-      console.error("Error parsing compatibility:", parseError)
-    }
-
-    const insertData = {
-      name,
-      description: description || null,
-      version: version || null,
-      release_date: release_date || null,
-      slug,
-      download_url: download_url || null,
-      documentation_url: documentation_url || null,
-      source_code_url: source_code_url || null,
-      license: license || null,
-      installation_difficulty: installation_difficulty || null,
-      image_url: image_url || null,
-      features: features.length > 0 ? features : null,
-      requirements: requirements.length > 0 ? requirements : null,
-      compatibility: compatibility.length > 0 ? compatibility : null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-
-    console.log("Inserting custom firmware data:", insertData)
-
-    const { data, error } = await supabaseAdmin.from("custom_firmware").insert([insertData]).select().single()
+    const { data, error } = await supabase
+      .from('custom_firmware')
+      .update(input)
+      .eq('id', id)
+      .select()
+      .single()
 
     if (error) {
-      console.error("Supabase error:", error)
-      return { success: false, error: error.message }
+      console.error('Error updating custom firmware:', error)
+      throw error
     }
 
-    console.log("Custom firmware created successfully:", data)
-
-    revalidatePath("/admin/custom-firmware")
-    revalidatePath("/custom-firmware")
-    return { success: true, data }
-  } catch (error: any) {
-    console.error("Custom firmware creation error:", error)
-    return { success: false, error: error.message }
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error in updateCustomFirmware:', error)
+    return { data: null, error }
   }
 }
 
-export async function updateCustomFirmware(id: string, updateData: any) {
+// Get all custom firmware entries
+export async function getAllCustomFirmware() {
   try {
-    console.log("Updating custom firmware:", id, updateData)
+    const { data, error } = await supabase
+      .from('custom_firmware')
+      .select('*')
+      .order('name', { ascending: true })
 
-    const { data, error } = await supabaseAdmin
-      .from("custom_firmware")
-      .update({
-        ...updateData,
-        updated_at: new Date().toISOString(),
+    if (error) {
+      console.error('Error fetching custom firmware:', error)
+      throw error
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Error in getAllCustomFirmware:', error)
+    return []
+  }
+}
+
+// Get active custom firmware entries
+export async function getActiveCustomFirmware() {
+  try {
+    const { data, error } = await supabase
+      .from('custom_firmware')
+      .select('*')
+      .eq('is_active', true)
+      .order('name', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching active custom firmware:', error)
+      throw error
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Error in getActiveCustomFirmware:', error)
+    return []
+  }
+}
+
+// Get custom firmware by slug
+export async function getCustomFirmwareBySlug(slug: string) {
+  try {
+    const { data, error } = await supabase
+      .from('custom_firmware')
+      .select('*')
+      .eq('slug', slug)
+      .single()
+
+    if (error) {
+      console.error('Error fetching custom firmware by slug:', error)
+      throw error
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error in getCustomFirmwareBySlug:', error)
+    return null
+  }
+}
+
+// Get custom firmware by ID
+export async function getCustomFirmwareById(id: number) {
+  try {
+    const { data, error } = await supabase
+      .from('custom_firmware')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      console.error('Error fetching custom firmware by ID:', error)
+      throw error
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error in getCustomFirmwareById:', error)
+    return null
+  }
+}
+
+// Delete custom firmware
+export async function deleteCustomFirmware(id: number) {
+  try {
+    const { error } = await supabase
+      .from('custom_firmware')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error deleting custom firmware:', error)
+      throw error
+    }
+
+    return { success: true, error: null }
+  } catch (error) {
+    console.error('Error in deleteCustomFirmware:', error)
+    return { success: false, error }
+  }
+}
+
+// Search custom firmware
+export async function searchCustomFirmware(query: string) {
+  try {
+    const { data, error } = await supabase
+      .from('custom_firmware')
+      .select('*')
+      .or(`name.ilike.%${query}%,description.ilike.%${query}%,tags.cs.{${query}}`)
+      .order('name', { ascending: true })
+
+    if (error) {
+      console.error('Error searching custom firmware:', error)
+      throw error
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Error in searchCustomFirmware:', error)
+    return []
+  }
+}
+
+// Get custom firmware for specific devices
+export async function getCustomFirmwareForDevice(device: string) {
+  try {
+    const { data, error } = await supabase
+      .from('custom_firmware')
+      .select('*')
+      .contains('compatibility', [device])
+      .eq('is_active', true)
+      .order('name', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching custom firmware for device:', error)
+      // Try alternative query if the contains operator fails
+      const { data: altData, error: altError } = await supabase
+        .from('custom_firmware')
+        .select('*')
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+      
+      if (altError) throw altError
+      
+      // Filter in JavaScript if database query doesn't support contains
+      return (altData || []).filter(cfw => {
+        if (Array.isArray(cfw.compatibility)) {
+          return cfw.compatibility.includes(device)
+        }
+        return false
       })
-      .eq("id", id)
-      .select()
-      .single()
-
-    if (error) {
-      console.error("Supabase error:", error)
-      return { success: false, error: error.message }
     }
 
-    console.log("Custom firmware updated successfully:", data)
-
-    revalidatePath("/admin/custom-firmware")
-    revalidatePath("/custom-firmware")
-    revalidatePath(`/custom-firmware/${data.slug}`)
-    return { success: true, data }
-  } catch (error: any) {
-    console.error("Custom firmware update error:", error)
-    return { success: false, error: error.message }
+    return data || []
+  } catch (error) {
+    console.error('Error in getCustomFirmwareForDevice:', error)
+    return []
   }
 }
 
-export async function deleteCustomFirmware(id: string) {
-  try {
-    // First delete all compatible handheld relationships
-    await supabaseAdmin.from("cfw_compatible_handhelds").delete().eq("custom_firmware_id", id)
+// Utility function to generate slug from name
+export function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
 
-    // Then delete the custom firmware
-    const { error } = await supabaseAdmin.from("custom_firmware").delete().eq("id", id)
+// Validate custom firmware input
+export function validateCustomFirmwareInput(input: CustomFirmwareInput): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
 
-    if (error) {
-      return { success: false, error: error.message }
-    }
+  if (!input.name || input.name.trim().length === 0) {
+    errors.push('Name is required')
+  }
 
-    revalidatePath("/admin/custom-firmware")
-    revalidatePath("/custom-firmware")
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  if (!input.slug || input.slug.trim().length === 0) {
+    errors.push('Slug is required')
+  } else if (!/^[a-z0-9-]+$/.test(input.slug)) {
+    errors.push('Slug must only contain lowercase letters, numbers, and hyphens')
+  }
+
+  if (input.download_url && !isValidUrl(input.download_url)) {
+    errors.push('Download URL must be a valid URL')
+  }
+
+  if (input.official_website && !isValidUrl(input.official_website)) {
+    errors.push('Official website must be a valid URL')
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
   }
 }
 
-export async function addCfwCompatibleHandheld(
-  customFirmwareId: string,
-  handheldId: string,
-  compatibilityNotes?: string,
-) {
+// Helper function to validate URLs
+function isValidUrl(url: string): boolean {
   try {
-    if (!handheldId) {
-      return { success: false, error: "Please select a handheld" }
-    }
-
-    // Check if relationship already exists
-    const { data: existing } = await supabaseAdmin
-      .from("cfw_compatible_handhelds")
-      .select("id")
-      .eq("custom_firmware_id", customFirmwareId)
-      .eq("handheld_id", handheldId)
-      .single()
-
-    if (existing) {
-      return { success: false, error: "This handheld is already added as compatible" }
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from("cfw_compatible_handhelds")
-      .insert([
-        {
-          custom_firmware_id: customFirmwareId,
-          handheld_id: handheldId,
-          compatibility_notes: compatibilityNotes || null,
-          created_at: new Date().toISOString(),
-        },
-      ])
-      .select()
-      .single()
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    revalidatePath(`/admin/custom-firmware/${customFirmwareId}`)
-    return { success: true, data }
-  } catch (error: any) {
-    return { success: false, error: error.message }
-  }
-}
-
-export async function removeCfwCompatibleHandheld(relationshipId: string, customFirmwareId: string) {
-  try {
-    const { error } = await supabaseAdmin.from("cfw_compatible_handhelds").delete().eq("id", relationshipId)
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    revalidatePath(`/admin/custom-firmware/${customFirmwareId}`)
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
-  }
-}
-
-export async function getCompatibleHandhelds(customFirmwareId: string) {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from("cfw_compatible_handhelds")
-      .select(`
-        id,
-        compatibility_notes,
-        handhelds (
-          id,
-          name,
-          slug,
-          image_url
-        )
-      `)
-      .eq("custom_firmware_id", customFirmwareId)
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: true, data }
-  } catch (error: any) {
-    return { success: false, error: error.message }
-  }
-}
-
-export async function getAllHandhelds() {
-  try {
-    const { data, error } = await supabaseAdmin.from("handhelds").select("id, name, slug, manufacturer").order("name")
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: true, data }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+    new URL(url)
+    return true
+  } catch {
+    return false
   }
 }

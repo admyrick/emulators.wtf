@@ -62,7 +62,7 @@ async function getCompatibleHandhelds(appId: string) {
   try {
     const { data, error } = await supabase
       .from("cfw_app_handheld_compatibility")
-      .select("handheld_id")
+      .select("handheld_id:device_id")
       .eq("cfw_app_id", appId)
 
     if (error) {

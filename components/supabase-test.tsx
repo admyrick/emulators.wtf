@@ -24,7 +24,7 @@ export function SupabaseTest() {
 
     // Test 1: Basic connection
     try {
-      const { data, error } = await supabase.from("handhelds").select("count").limit(1)
+      const { data, error } = await supabase.from("handhelds").select("*", { count: "exact", head: true }).limit(1)
       if (error) throw error
       testResults.push({
         name: "Basic Connection",

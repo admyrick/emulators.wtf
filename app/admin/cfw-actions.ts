@@ -100,7 +100,7 @@ export async function deleteCfwAction(id: string) {
   const supabase = createClient()
 
   // Delete compatible handhelds first (cascade should handle this, but being explicit)
-  await supabase.from("cfw_compatible_handhelds").delete().eq("custom_firmware_id", id)
+  await supabase.from("handheld_custom_firmware").delete().eq("custom_firmware_id", id)
 
   const { error } = await supabase.from("custom_firmware").delete().eq("id", id)
 
@@ -135,19 +135,19 @@ export async function addCfwCompatibleHandheld(formData: FormData) {
 
   // Check if relationship already exists
   const { data: existing } = await supabase
-    .from("cfw_compatible_handhelds")
+    .from("handheld_custom_firmware")
     .select("id")
     .eq("custom_firmware_id", customFirmwareId)
-    .eq("handheld_id", handheldId)
+    .eq("device_id", handheldId)
     .single()
 
   if (existing) {
     throw new Error("This handheld is already added as compatible")
   }
 
-  const { error } = await supabase.from("cfw_compatible_handhelds").insert({
+  const { error } = await supabase.from("handheld_custom_firmware").insert({
     custom_firmware_id: customFirmwareId,
-    handheld_id: handheldId,
+    device_id: handheldId,
     compatibility_notes: compatibilityNotes || null,
   })
 
@@ -162,7 +162,7 @@ export async function addCfwCompatibleHandheld(formData: FormData) {
 export async function removeCfwCompatibleHandheld(relationshipId: string, customFirmwareId: string) {
   const supabase = createClient()
 
-  const { error } = await supabase.from("cfw_compatible_handhelds").delete().eq("id", relationshipId)
+  const { error } = await supabase.from("handheld_custom_firmware").delete().eq("id", relationshipId)
 
   if (error) {
     throw new Error(`Failed to remove compatible handheld: ${error.message}`)

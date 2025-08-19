@@ -24,6 +24,18 @@ interface CustomFirmware {
   updated_at: string
 }
 
+interface FirmwareLink {
+  id: string
+  url: string
+  title: string | null
+  is_primary: boolean | null
+  display_order: number | null
+  // Optional columns depending on your schema:
+  entity_type?: string | null
+  entity_id?: string | null
+  cfw_id?: string | null
+}
+
 interface CompatibleHandheld {
   id: string
   compatibility_notes: string
@@ -49,12 +61,28 @@ interface CompatibleCfwApp {
 
 async function getCustomFirmware(slug: string): Promise<CustomFirmware | null> {
   const { data, error } = await supabase.from("custom_firmware").select("*").eq("slug", slug).single()
-
-  if (error || !data) {
-    return null
-  }
-
+  if (error || !data) return null
   return data
+}
+
+async function getFirmwareLinks(firmwareId: string): Promise<FirmwareLink[]> {
+  // Supports BOTH schemas:
+  //  A) FK-style: links.cfw_id = firmware.id
+  //  B) Polymorphic: links.entity_type = 'custom_firmware' AND links.entity_id = firmware.id
+  const { data, error } = await supabase
+    .from("links")
+    .select("*")
+    .or(
+      [
+        `cfw_id.eq.${firmwareId}`,
+        `and(entity_type.eq.custom_firmware,entity_id.eq.${firmwareId})`,
+      ].join(",")
+    )
+    .order("is_primary", { ascending: false })
+    .order("display_order", { ascending: true })
+
+  if (error || !data) return []
+  return data as FirmwareLink[]
 }
 
 async function getCompatibleHandhelds(firmwareId: string): Promise<CompatibleHandheld[]> {
@@ -73,10 +101,7 @@ async function getCompatibleHandhelds(firmwareId: string): Promise<CompatibleHan
     `)
     .eq("custom_firmware_id", firmwareId)
 
-  if (error || !data) {
-    return []
-  }
-
+  if (error || !data) return []
   return data as CompatibleHandheld[]
 }
 
@@ -95,23 +120,20 @@ async function getCompatibleCfwApps(firmwareId: string) {
     `)
     .eq("custom_firmware_id", firmwareId)
 
-  if (error || !data) {
-    return []
-  }
-
+  if (error || !data) return []
   return data
 }
 
 export default async function CustomFirmwarePage({ params }: { params: { slug: string } }) {
   const firmware = await getCustomFirmware(params.slug)
-
   if (!firmware) {
     notFound()
   }
 
-  const [compatibleHandhelds, compatibleCfwApps] = await Promise.all([
+  const [compatibleHandhelds, compatibleCfwApps, cfwLinks] = await Promise.all([
     getCompatibleHandhelds(firmware.id),
     getCompatibleCfwApps(firmware.id),
+    getFirmwareLinks(firmware.id),
   ])
 
   const ensureArray = (value: string | string[] | null | undefined): string[] => {
@@ -161,7 +183,7 @@ export default async function CustomFirmwarePage({ params }: { params: { slug: s
             </Badge>
             <Badge
               className={`${
-                difficultyColors[firmware.installation_difficulty as keyof typeof difficultyColors] ||
+                (difficultyColors as any)[firmware.installation_difficulty] ||
                 difficultyColors.intermediate
               }`}
             >
@@ -208,6 +230,36 @@ export default async function CustomFirmwarePage({ params }: { params: { slug: s
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
+            {/* Links */}
+            {cfwLinks.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Links</CardTitle>
+                  <CardDescription>Official pages, downloads, docs, and more</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {cfwLinks.map((l) => (
+                      <li key={l.id} className="flex items-center gap-2">
+                        {l.is_primary ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full border">Primary</span>
+                        ) : null}
+                        <Link
+                          href={l.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline inline-flex items-center gap-1"
+                        >
+                          {l.title || l.url}
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Features */}
             {featuresArray.length > 0 && (
               <Card>
@@ -365,7 +417,7 @@ export default async function CustomFirmwarePage({ params }: { params: { slug: s
                   <h4 className="font-semibold mb-1">Installation Difficulty</h4>
                   <Badge
                     className={`${
-                      difficultyColors[firmware.installation_difficulty as keyof typeof difficultyColors] ||
+                      (difficultyColors as any)[firmware.installation_difficulty] ||
                       difficultyColors.intermediate
                     }`}
                   >

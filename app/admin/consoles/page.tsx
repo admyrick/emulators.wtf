@@ -60,6 +60,8 @@ export default function AdminConsolesPage() {
   const { data: consoles, isLoading } = useQuery({
     queryKey: ["admin-consoles", searchQuery],
     queryFn: () => getConsoles(searchQuery),
+    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 10000, // Consider data stale after 10 seconds
   })
 
   const handleDelete = async (id: string) => {
@@ -67,6 +69,7 @@ export default function AdminConsolesPage() {
     if (result.success) {
       toast({ title: "Console deleted successfully" })
       queryClient.invalidateQueries({ queryKey: ["admin-consoles"] })
+      queryClient.removeQueries({ queryKey: ["admin-consoles"] })
       router.refresh()
     } else {
       toast({ title: "Failed to delete console", variant: "destructive" })
@@ -83,6 +86,37 @@ export default function AdminConsolesPage() {
       const formData = new FormData(e.target as HTMLFormElement)
 
       try {
+        if (console) {
+          const { data: existingConsole, error: checkError } = await supabase
+            .from("consoles")
+            .select("id")
+            .eq("id", console.id)
+            .maybeSingle()
+
+          if (checkError) {
+            console.error("Error checking console existence:", checkError)
+            toast({
+              title: "Error checking console",
+              description: "Unable to verify console exists. Please try again.",
+              variant: "destructive",
+            })
+            return
+          }
+
+          if (!existingConsole) {
+            toast({
+              title: "Console no longer exists",
+              description: "This console was deleted. Refreshing the list...",
+              variant: "destructive",
+            })
+            onCancel()
+            queryClient.invalidateQueries({ queryKey: ["admin-consoles"] })
+            queryClient.removeQueries({ queryKey: ["admin-consoles"] })
+            router.refresh()
+            return
+          }
+        }
+
         let result
         if (console) {
           result = await updateConsole(console.id, formData)
@@ -94,20 +128,45 @@ export default function AdminConsolesPage() {
           toast({ title: `Console ${console ? "updated" : "created"} successfully` })
           onCancel()
           queryClient.invalidateQueries({ queryKey: ["admin-consoles"] })
+          queryClient.removeQueries({ queryKey: ["admin-consoles"] })
+          router.refresh()
+        } else {
+          if (result.error?.includes("No console found with ID") || result.error?.includes("Console not found")) {
+            toast({
+              title: "Console no longer exists",
+              description: "This console was deleted. Refreshing the list...",
+              variant: "destructive",
+            })
+            onCancel()
+            queryClient.invalidateQueries({ queryKey: ["admin-consoles"] })
+            queryClient.removeQueries({ queryKey: ["admin-consoles"] })
+            router.refresh()
+          } else {
+            toast({
+              title: `Failed to ${console ? "update" : "create"} console`,
+              description: result.error,
+              variant: "destructive",
+            })
+          }
+        }
+      } catch (error: any) {
+        if (error.message?.includes("No console found with ID") || error.message?.includes("Console not found")) {
+          toast({
+            title: "Console no longer exists",
+            description: "This console was deleted. Refreshing the list...",
+            variant: "destructive",
+          })
+          onCancel()
+          queryClient.invalidateQueries({ queryKey: ["admin-consoles"] })
+          queryClient.removeQueries({ queryKey: ["admin-consoles"] })
           router.refresh()
         } else {
           toast({
             title: `Failed to ${console ? "update" : "create"} console`,
-            description: result.error,
+            description: error.message,
             variant: "destructive",
           })
         }
-      } catch (error: any) {
-        toast({
-          title: `Failed to ${console ? "update" : "create"} console`,
-          description: error.message,
-          variant: "destructive",
-        })
       } finally {
         setIsSubmitting(false)
       }
